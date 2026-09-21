@@ -1,0 +1,15 @@
+# model weights — fetch separately (see README); never commit
+teachers/H-optimus-0/pytorch_model.bin
+teachers/GigaPath/
+*.safetensors
+*.ckpt
+
+# large freeze freeze manifests (264MB/286MB) — ship in the release package, not Git
+
+# runtime artifacts
+__pycache__/
+*.pyc
+.cache/
+run/results/
+run/experiment_specs/generated.yaml
+run/dataset/

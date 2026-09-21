@@ -1,0 +1,201 @@
+stages:
+  - validate-mr-title
+  - check-mr-lines
+  - static-tests
+  - build-docker-image
+  - check-jenkins-status
+
+variables:
+  BASE_IMAGE_REPO: "nvcr.io/nvstaging/tao/tao_pytorch_base_image"
+  BASE_IMAGE_TAG: ""
+  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+
+validate_mr_title:
+  stage: validate-mr-title
+  script:
+    - |
+      # Extract the MR title from the environment variable provided by GitLab CI
+      MR_TITLE=$CI_MERGE_REQUEST_TITLE
+
+      # Regular expression for the MR title validation
+      REGEX="^\[(JIRA|TLT|TAO|TAOVN)-[0-9]+\]\[(CI|CD|Bugfix|Hotfix|CV|LLM|Feature|Model-Cards|Docs|Chore)\] .+$"
+
+      # Validate the MR title
+      if [[ "$MR_TITLE" =~ $REGEX ]]; then
+        echo "MR title is valid: $MR_TITLE"
+        exit 0
+      else
+        echo "Invalid MR title format: $MR_TITLE"
+        echo "Expected format: [JIRA-ID][CI/CD/Bugfix/Hotfix/CV/LLM/Feature/Model-Cards/Docs/Chore] MR Title"
+        exit 1
+      fi
+  tags: ["trigger-jenkins"]
+  only:
+    refs:
+      - merge_requests
+
+check_mr_lines:
+  stage: check-mr-lines
+  script:
+    - python3 ci/check_mr_lines.py
+  tags: ["trigger-jenkins"]
+  only:
+    - merge_requests
+  variables:
+    GITLAB_PRIVATE_TOKEN: $GITLAB_PRIVATE_TOKEN
+  allow_failure: true
+
+static_tests:
+  stage: static-tests
+  image: nvcr.io/nvstaging/tao/tao_pytorch_base_image@sha256:e665fa173e1dfcafc211a640f6d642edc64eb1f4120e5b538d177268e69b8457
+  script:
+    - export PYTHONPATH=${CI_PROJECT_DIR}:$PYTHONPATH
+    - export CI_PROJECT_DIR=${CI_PROJECT_DIR}
+    - python3 ci/run_static_tests.py --changed-files-only --target-branch origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+  tags: ["trigger-jenkins"]
+  only:
+    - merge_requests
+
+build_and_push:
+  stage: build-docker-image
+  image: docker:27.0
+  services: [ "docker:27.0-dind" ]
+  before_script:
+    - echo "$NGC_PASSWORD" | docker login nvcr.io -u '$oauthtoken' --password-stdin
+  script:
+    - export DOCKER_BUILDKIT=1
+    - DYN_TAG="${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}"
+    - STABLE="${CI_COMMIT_REF_SLUG}-latest"
+    - >
+      docker build
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      --cache-from "$BASE_IMAGE_REPO:$STABLE"
+      -t "$BASE_IMAGE_REPO:$DYN_TAG"
+      -t "$BASE_IMAGE_REPO:$STABLE"
+      -f docker/Dockerfile
+      .
+    - docker push "$BASE_IMAGE_REPO:$DYN_TAG"
+    - docker push "$BASE_IMAGE_REPO:$STABLE"
+    - echo "DYN_TAG=$DYN_TAG" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^renovate\// || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^build-base-image\//)'
+  tags: ["type/docker", "os/linux"]
+
+check_jenkins_status:
+  stage: check-jenkins-status
+  script:
+    - |
+      # Define Jenkins parameters
+      FORKED_REPO_URL=$CI_MERGE_REQUEST_SOURCE_PROJECT_URL
+      SOURCE_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+      TARGET_BRANCH=$CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+
+      JENKINS_URL="https://prod.blsm.nvidia.com/metropolis-iva-tlt-jenkins"
+      
+      # Determine which Jenkins pipeline to trigger based on source/target branch names
+      # Priority: dev/* -> default (develop)
+      # Note: Release pipelines are NOT triggered during MRs, only on direct commits to release branches
+      if [[ "$SOURCE_BRANCH" =~ ^dev/.* || "$TARGET_BRANCH" =~ ^dev/.* ]]; then
+        echo "Dev branch detected (source='$SOURCE_BRANCH', target='$TARGET_BRANCH')"
+        echo "Triggering tao-pytorch-dev pipeline"
+        JENKINS_JOB="tao-pytorch-dev"
+        BRANCH_TO_BUILD="$SOURCE_BRANCH"
+        JENKINS_PARAMS="token=$JENKINS_JOB_TOKEN&GITLAB_REPO_URL=$FORKED_REPO_URL&GITLAB_BRANCH=$BRANCH_TO_BUILD&BRANCH_NAME=$BRANCH_TO_BUILD"
+      elif [[ "$SOURCE_BRANCH" =~ ^renovate/.* || "$SOURCE_BRANCH" =~ ^build-base-image/.* ]]; then
+        echo "Renovate/build-base-image branch detected: $SOURCE_BRANCH"
+        echo "Triggering tao-pytorch-develop pipeline with BASE_IMAGE_REPO and BASE_IMAGE_TAG params"
+        # use DYN_TAG from dotenv or recompute the same way
+        : "${DYN_TAG:=${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}}"
+        JENKINS_JOB="tao-pytorch-develop"
+        BRANCH_TO_BUILD="$SOURCE_BRANCH"
+        JENKINS_PARAMS="token=$JENKINS_JOB_TOKEN&GITLAB_REPO_URL=$FORKED_REPO_URL&GITLAB_BRANCH=$BRANCH_TO_BUILD&BRANCH_NAME=$BRANCH_TO_BUILD&BASE_IMAGE_REPO=$BASE_IMAGE_REPO&BASE_IMAGE_TAG=$DYN_TAG"
+      else
+        echo "Defaulting to develop pipeline (source='$SOURCE_BRANCH', target='$TARGET_BRANCH')"
+        JENKINS_JOB="tao-pytorch-develop"
+        BRANCH_TO_BUILD="$SOURCE_BRANCH"
+        JENKINS_PARAMS="token=$JENKINS_JOB_TOKEN&GITLAB_REPO_URL=$FORKED_REPO_URL&GITLAB_BRANCH=$BRANCH_TO_BUILD&BRANCH_NAME=$BRANCH_TO_BUILD"
+      fi
+      
+      echo "Jenkins Job: $JENKINS_JOB"
+      echo "Jenkins Parameters: $JENKINS_PARAMS"
+      
+      # Step 1: Fetch the last build number before triggering a new build
+      last_build_number=$(curl -s -X POST -u "$JENKINS_USER:$JENKINS_TOKEN" "$JENKINS_URL/job/$JENKINS_JOB/lastBuild/buildNumber")
+
+      # Step 2: Trigger the new build
+      curl -s -X POST -u "$JENKINS_USER:$JENKINS_TOKEN" \
+      "$JENKINS_URL/view/tao-pytorch/job/$JENKINS_JOB/buildWithParameters?$JENKINS_PARAMS"
+
+      # Step 3: Poll until a new build number is detected
+      while true; do
+          current_build_number=$(curl -s -X POST -u "$JENKINS_USER:$JENKINS_TOKEN" "$JENKINS_URL/job/$JENKINS_JOB/lastBuild/buildNumber")
+          
+          if [ "$current_build_number" -gt "$last_build_number" ]; then
+              echo "New build detected: Build Number $current_build_number"
+              break
+          fi
+
+          sleep 1
+      done
+
+      build_url="$JENKINS_URL/job/$JENKINS_JOB/${current_build_number}/"
+      echo "You can view the build details at: $build_url"
+
+      # Step 4 : Poll Jenkins job status and get details for each stage
+      # Reference:
+      # - https://stackoverflow.com/a/64660976
+      # - https://prod.blsm.nvidia.com/metropolis-iva-tlt-jenkins/api/
+      echo "---------- Console Output of the Jenkins job ----------"
+      start=0
+      while true; do
+          # Fetch the Console Output of the job
+          response=$(curl -si -w "\n%{size_header},%{size_download}" -u "$JENKINS_USER:$JENKINS_TOKEN" \
+          "$JENKINS_URL/job/$JENKINS_JOB/${current_build_number}/logText/progressiveText?start=${start}")
+
+          # Extract the header and the body
+          header_size=$(sed -n '$ s/^\([0-9]*\),.*$/\1/ p' <<< "${response}")
+          body_size=$(sed -n '$ s/^.*,\([0-9]*\)$/\1/ p' <<< "${response}")
+          header="${response:0:${header_size}}"
+          body="$(sed '$d' <<< ${response:${header_size}:${body_size}})"
+
+          # Extract the start value by from the header
+          start=$(echo "$header" | grep "X-Text-Size" | sed "s/[^0-9]//g")
+
+          # Fetch the job status (SUCCESS, FAILURE, ABORTED, etc.)
+          # Use `|| true` to prevent the script from failing if `jq` encounters an error.
+          job_status=$(curl -s -u "$JENKINS_USER:$JENKINS_TOKEN" \
+          "$JENKINS_URL/job/$JENKINS_JOB/${current_build_number}/api/json?tree=result" | \
+          jq -r '.result') || true
+
+          # Output the log
+          echo "$body"
+
+          # Handle the overall job status
+          if [ "$job_status" == "SUCCESS" ]; then
+              echo "-------------- End of the Console Output --------------"
+              echo "Jenkins job succeeded"
+              break
+          elif [ "$job_status" == "UNSTABLE" ]; then
+              echo "-------------- End of the Console Output --------------"
+              echo "Jenkins job is UNSTABLE"
+              break
+          elif [ "$job_status" == "FAILURE" ]; then
+              echo "-------------- End of the Console Output --------------"
+              echo "Jenkins job failed"
+              exit 1
+          elif [ "$job_status" == "ABORTED" ]; then
+              echo "Jenkins job was aborted"
+              exit 1
+          else
+              sleep 10
+          fi
+      done
+  timeout: 5h
+  tags: ["trigger-jenkins"]
+  only:
+    refs:
+      - merge_requests
+

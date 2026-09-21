@@ -1,0 +1,20 @@
+{
+    "Mounts": [
+        {
+            "source": "<CLUSTER_WORKSPACE>/teacher_models",
+            "destination": "/workspace/teacher_models"
+        },
+        {
+            "source": "<CLUSTER_WORKSPACE>/tao-pytorch-custom-build",
+            "destination": "/tao-pt"
+        },
+        {
+            "source": "<CLUSTER_WORKSPACE>/experiments",
+            "destination": "/workspace/experiments"
+        },
+        {
+            "source": "/path/to/imagenet/dataset",
+            "destination": "/workspace/datasets/imagenet"
+        }
+    ]
+}

@@ -1,0 +1,456 @@
+// Global variables - Version is passed to release/update_version.py to patch build files
+def TAO_VERSION = "6.25.7"
+def BUILD_TYPE = "dev"
+
+def getPulseToken() {
+    def token
+    echo "Getting Pulse token..."
+
+    sh "apk update"
+    sh "apk add curl jq wget python3 py3-pip"
+
+    withCredentials([usernamePassword(credentialsId: 'pulse-client-credentials',
+                                      usernameVariable: 'CLIENT_ID',
+                                      passwordVariable: 'CLIENT_SECRET')]) {
+        token = sh(script: """
+            curl --location --request POST 'https://x9thwm-cootr2q1jdv5p7b8iw4fs4ob3x6nqqsoznyk.ssa.nvidia.com/token' \
+                --user "$CLIENT_ID:$CLIENT_SECRET" \
+                --header 'Content-Type: application/x-www-form-urlencoded' \
+                --data-urlencode 'grant_type=client_credentials' \
+                --data-urlencode 'scope=nspect.verify scan.anchore' | jq -r '.access_token'
+        """, returnStdout: true).trim()
+    }
+
+    echo "${token}"
+    return token
+}
+
+
+podTemplate (cloud:'sc-ipp-blossom-prod', yaml : """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  imagePullSecrets:
+  - name: svc-tlt-ci-ngcimagepullsecret
+  - name: gitlab-tao-imagepullsecret
+  containers:
+  - name: docker
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "32Gi"
+      limits:
+        memory: "64Gi"
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+  - name: base-image
+    image: nvcr.io/nvstaging/tao/tao_pytorch_base_image@sha256:d2a6b648152f7e38168453be38233082964193e70b154fdce16fac39e6b0d9e2
+    securityContext:
+      privileged: true
+    command:
+    - cat
+    resources:
+      requests:
+        nvidia.com/gpu: 1
+        memory: "16Gi"
+      limits:
+        nvidia.com/gpu: 1
+        memory: "64Gi"
+    tty: true
+  restartPolicy: Never
+  backoffLimit: 4
+  nodeSelector:
+    kubernetes.io/os: linux
+    nvidia.com/gpu_type: A100_PCIE_40GB
+    nvidia.com/driver_version: "580.35"
+""") {
+  node(POD_LABEL) {
+    try {
+      container('base-image') {
+        def command_env = ''
+
+        stage ('checkout') {
+          gitlabCommitStatus(name: "checkout", connection: gitLabConnection('git-lab-master')) {
+            checkout scm
+            // Adding this since 22.05+ containers need this in git.
+            sh "git config --global --add safe.directory $WORKSPACE && ls -lrt"
+          }
+        }
+
+        stage ('patch_build_files') {
+          gitlabCommitStatus(name: "patch_build_files", connection: gitLabConnection('git-lab-master')) {
+            sh "python3 release/update_version.py --version ${TAO_VERSION}"
+            echo "Build files patched with version ${TAO_VERSION}"
+          }
+        }
+
+        stage ('setup') {
+          gitlabCommitStatus(name: "setup", connection: gitLabConnection('git-lab-master')) {
+            sh "ls -rlt ./"
+            sh "ls -lh ./tests/" // check if lfs pull is successfull
+            sh "source scripts/envsetup.sh"
+            def workspace_path = pwd()
+            def pythonpath_env = 'PYTHONPATH=' + workspace_path + ':$PYTHONPATH'
+            def ci_path_env = 'CI_PROJECT_DIR=' + workspace_path
+            command_env = pythonpath_env + ' ' + ci_path_env
+          }
+        }
+
+        stage ('setup_scratch_space') {
+          sh 'apt-get update'
+          sh 'apt-get install cifs-utils -y'
+          sh 'env | sort'
+          sh 'mkdir -p <SHARED_SCRATCH_MOUNT>'
+          sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+          withCredentials([usernamePassword(credentialsId: 'svc-tlt-ci-mount', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
+            sh 'mount -t cifs -o "vers=2.0,username=${USERNAME},password=${PASSWORD},dom=nvidia.com,dir_mode=0777,file_mode=0777" //<fileserver>/<share> <SHARED_SCRATCH_MOUNT>'
+          }
+          sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+        }
+      }
+
+      container("docker"){
+        stage ('setup_scratch_space_in_dind') {
+          sh 'uname -a'
+          sh 'apk update'
+          sh 'apk add cifs-utils python3 py3-pip'
+          sh 'python3 -V'
+          sh 'python3 -m pip install pyyaml'
+          sh 'ls /sbin/mount.cifs'
+          sh 'env | sort'
+          sh 'ls -lrt; pwd'
+          sh 'df -h'
+          sh 'mkdir -p <SHARED_SCRATCH_MOUNT>'
+          sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+          withCredentials([usernamePassword(credentialsId: 'svc-tlt-ci-mount', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
+            sh 'mount -t cifs -o "vers=2.0,username=${USERNAME},password=${PASSWORD},dom=nvidia.com,dir_mode=0777,file_mode=0777" //<fileserver>/<share> <SHARED_SCRATCH_MOUNT>'
+          }
+                  sh 'df -h'
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+      }
+    }
+      
+    container('base-image') {
+        def workspace_path = pwd()
+        def pythonpath_env = 'PYTHONPATH=' + workspace_path + ':$PYTHONPATH'
+        def ci_path_env = 'CI_PROJECT_DIR=' + workspace_path
+        command_env = pythonpath_env + ' ' + ci_path_env
+
+        stage ("functional_tests") {
+          withCredentials([
+            string(credentialsId: 'NGC_CLI_API_KEY_SVC_TLT_CI', variable: 'NGC_CLI_API_KEY'),
+            string(credentialsId: 'HF_TOKEN_CI', variable: 'HF_TOKEN')
+          ]) {
+            script{
+              env.NGC_KEY=NGC_CLI_API_KEY
+              env.NGC_PATH='ea-tlt/tao_ea/pretrained_dino_imagenet:fan_hybrid_tiny'
+              env.HF_TOKEN=HF_TOKEN
+            }
+          }
+          gitlabCommitStatus(name: "functional_tests", connection: gitLabConnection('git-lab-master')) {
+            echo "starting functional test . . ."
+            sh "pip install pytest-cov coverage"
+            sh "python setup.py develop"
+            sh "CPUCOUNT=1 pip install tao-core/"
+            // Running functional tests with coverage reporting.
+            // Using COVERAGE_FILE environment variable to write directly to named coverage files
+            
+            // 1. cv_unit tests
+            sh "COVERAGE_FILE=.coverage.cv_unit ${command_env} python ci/run_functional_tests.py -m 'cv_unit' --cov=nvidia_tao_pytorch --cov-report="
+            sh "ls -la .coverage.cv_unit || echo 'Warning: .coverage.cv_unit not created'"
+            
+            // 2. sdg_unit tests
+            sh "COVERAGE_FILE=.coverage.sdg_unit ${command_env} python ci/run_functional_tests.py -m 'sdg_unit' --cov=nvidia_tao_pytorch --cov-report="
+            sh "ls -la .coverage.sdg_unit || echo 'Warning: .coverage.sdg_unit not created'"
+            
+            // 3. distributed tests
+            sh "COVERAGE_FILE=.coverage.distributed ${command_env} pytest -v --color=yes tests/distributed --cov=nvidia_tao_pytorch --cov-report="
+            sh "ls -la .coverage.distributed || echo 'Warning: .coverage.distributed not created'"
+            
+            // 4. ssl_unit_test
+            sh "COVERAGE_FILE=.coverage.ssl_unit_test ${command_env} pytest -v --color=yes tests/ssl_unit_test --cov=nvidia_tao_pytorch --cov-report="
+            sh "ls -la .coverage.ssl_unit_test || echo 'Warning: .coverage.ssl_unit_test not created'"
+            
+            // Combine all coverage data files that exist
+            sh """
+                echo 'Checking for coverage files...'
+                ls -la .coverage.* 2>/dev/null || echo 'No coverage files found'
+                
+                # Create list of existing coverage files
+                coverage_files=""
+                for file in .coverage.cv_unit .coverage.sdg_unit .coverage.distributed .coverage.ssl_unit_test; do
+                    if [ -f "\$file" ]; then
+                        coverage_files="\$coverage_files \$file"
+                        echo "Found coverage file: \$file"
+                    else
+                        echo "Warning: Missing coverage file: \$file"
+                    fi
+                done
+                
+                if [ -n "\$coverage_files" ]; then
+                    echo "Combining coverage files:\$coverage_files"
+                    coverage combine \$coverage_files
+                    coverage xml -o coverage.xml
+                    coverage report
+                    
+                    # Copy combined coverage for scratch space (maintaining existing functionality)
+                    cp .coverage <SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/coverage_reports/functional_test/.coverage.fn_pyt || echo "Warning: Failed to copy coverage to scratch space"
+                else
+                    echo "ERROR: No coverage files were generated!"
+                    echo "Creating empty coverage.xml to prevent pipeline failure"
+                    echo '<?xml version="1.0" ?><coverage version="1.0"><packages/></coverage>' > coverage.xml
+                fi
+            """
+            // Archive XML coverage report for SonarQube
+            archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+          }
+        }
+      }
+
+      container("docker") {
+        stage ('sonarqube_analysis') {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            gitlabCommitStatus(name: "sonarqube_analysis", connection: gitLabConnection('git-lab-master')) {
+              def branchName = params.GITLAB_BRANCH ?: params.BRANCH_NAME ?: env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'main'
+              echo "Analyzing branch: ${branchName}"
+              echo "Available parameters: GITLAB_BRANCH=${params.GITLAB_BRANCH}, BRANCH_NAME=${params.BRANCH_NAME}"
+              echo "Available env vars: BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}"
+              
+              docker.image('sonarsource/sonar-scanner-cli:11').inside() {
+                withSonarQubeEnv() {
+                  sh "sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.sources=nvidia_tao_pytorch -Dsonar.tests=tests -Dsonar.branch.name=${branchName}"
+                }
+              }
+              echo "SonarQube analysis completed successfully"
+            }
+          }
+        }
+      }
+
+      container('base-image') {
+        stage ('build_wheel') {
+          gitlabCommitStatus(name: "build_wheel", connection: gitLabConnection('git-lab-master')) {
+            // Building the wheels for the tao source code.
+            // Extract patch number from TAO_VERSION (e.g., "6.25.7" -> "7")
+            def VERSION_PARTS = TAO_VERSION.split('\\.')
+            def PATCH_NUMBER = VERSION_PARTS[-1]
+            def VER="${TAO_VERSION}.${BUILD_TYPE}${BUILD_NUMBER}"
+            sh "echo '${PATCH_NUMBER}.${BUILD_TYPE}${BUILD_NUMBER}' > build.info"
+            build_env = command_env
+            sh "${build_env} python setup.py bdist_wheel"
+            sh "pip install dist/nvidia_tao_pytorch-*.whl"
+          }
+        }
+      }
+
+      container('base-image') {
+        def workspace_path = pwd()
+        def pythonpath_env = 'PYTHONPATH=' + workspace_path + ':$PYTHONPATH'
+        def ci_path_env = 'CI_PROJECT_DIR=' + workspace_path
+        command_env = pythonpath_env + ' ' + ci_path_env
+
+        stage ('wheel_publish') {
+          gitlabCommitStatus(name: "obfuscated_wheel_publish", connection: gitLabConnection('git-lab-master')) {
+            // install jfrog first
+            sh "bash ${WORKSPACE}/docker/install_jfrog.sh"
+            
+            // Extract patch number from TAO_VERSION and construct VER to match actual wheel naming
+            def VERSION_PARTS = TAO_VERSION.split('\\.')
+            def PATCH_NUMBER = VERSION_PARTS[-1]
+            def VER="${TAO_VERSION}.${BUILD_TYPE}${BUILD_NUMBER}"
+            
+            def PYTHON_VER="cp312-cp312"
+            def ARCH="linux_x86_64"
+            def SRC="dist/nvidia_tao_pytorch-${VER}-${PYTHON_VER}-${ARCH}.whl"
+            def TARGET="sw-tao-pypi-local/nvidia-tao-pytorch-nightly/${VER}/"
+            def PROP="component_name=nvidia-tao-pytorch;arch=x86_64;os=linux;build_source=None;version=${VER};branch=main;release_approver=vpraveen"
+            withCredentials([usernamePassword(credentialsId: 'tao-artifactory-tkn', passwordVariable: 'JFROG_PASSWORD', usernameVariable: 'JFROG_USERNAME')]) {
+              sh "jfrog rt u --url=https://urm.nvidia.com/artifactory/ --user=${JFROG_USERNAME} --access-token=${JFROG_PASSWORD} --target-props '${PROP}' ${SRC} ${TARGET}"
+            }
+            def append_string="pytorch_wheel: nvidia_tao_pytorch-${VER}-${PYTHON_VER}-${ARCH}.whl"
+            def config_file_path = "<SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+            sh "python3 ci/update_release_config.py ${config_file_path} '${append_string}'"
+            sh "cat <SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+          }
+        }
+        
+        stage ('publish_release_artifacts') {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            gitlabCommitStatus(name: "publish_release_artifacts", connection: gitLabConnection('git-lab-master')) {
+            withCredentials([string(credentialsId: 'gitlab-api-token', variable: 'GITLAB_TOKEN')]) {
+                def MAIN_WORKSPACE="${WORKSPACE}"
+                def GITLAB_PROJECT_ID = "140276"
+                def TAG_NAME = "Artifacts"
+                def RELEASE_NAME = "Release Artifacts"
+                def RELEASE_DESCRIPTION = "Release artifacts with third-party packages"
+
+                echo "Updating dependencies..."
+
+                sh """
+                        set -x
+                        python3 -m pip install requests
+                    """
+
+                try {
+                    sh """
+                        set -x
+                        # Configure APT source repositories for source package downloads
+                        echo "Configuring APT source repositories..."
+                        mkdir -p /etc/apt/sources.list.d || true
+                        SOURCES_FILE=/etc/apt/sources.list.d/jenkins-deb-src.list
+                        echo "Writing deb-src lines to ${SOURCES_FILE}..."
+                        cat <<-EOF > ${SOURCES_FILE} || (echo "Failed to write to ${SOURCES_FILE}, checking permissions" && ls -la /etc/apt/sources.list.d/)
+    deb-src http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+    deb-src http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+    deb-src http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+    deb-src http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse
+    EOF
+                        apt-get update || echo "apt-get update failed, continuing anyway"
+                        python3 -m pip --version || (apt-get update && apt-get install -y python3-pip)
+                        python3 -m pip install --upgrade pip
+                        echo "Installing requests library..."
+                        python3 -m pip install requests
+                    """
+                } catch (Exception e) {
+                    echo "Error during APT setup: ${e.getMessage()}"
+                    echo "Continuing anyway..."
+                }
+
+                echo "Publishing release artifacts..."
+
+                try {
+                    sh """
+                    set -x
+                    # Check if git is installed, if not install it
+                    command -v git >/dev/null 2>&1 || { echo "Installing git..."; apt-get update && apt-get install -y git; }
+
+                    # Verify GITLAB_TOKEN is set (without printing it)
+                    if [ -z "${GITLAB_TOKEN}" ]; then
+                        echo "ERROR: GITLAB_TOKEN is empty!"
+                        exit 1
+                    else
+                        echo "GITLAB_TOKEN is set and not empty"
+                    fi
+
+                    # Test access to GitLab before attempting clone
+                    curl -s -I -H "Authorization: Bearer ${GITLAB_TOKEN}" https://gitlab-master.nvidia.com/api/v4/projects | grep -q "HTTP/2 200" && echo "GitLab API access successful" || echo "GitLab API access failed"
+
+                    # Clone using GitLab token for authentication
+                    git clone https://oauth2:${GITLAB_TOKEN}@gitlab-master.nvidia.com/nvidia-tao-toolkit/tao-third-party-packages.git third-party-manager
+                    """
+                } catch (Exception e) {
+                    echo "Error during git operations: ${e.getMessage()}"
+                    error("Failed at git clone stage")
+                }
+
+                try {
+                    sh """
+                    set -x
+                    cd third-party-manager
+                    python3 manage_third_party.py \
+                        --enable-wheels \
+                        --enable-apt \
+                        --python-requirements "${MAIN_WORKSPACE}/docker/requirements-pip.txt" \
+                        --apt-requirements "${MAIN_WORKSPACE}/docker/requirements-apt.txt" \
+                        --gitlab-project-id ${GITLAB_PROJECT_ID} \
+                        --tag-name ${TAG_NAME} \
+                        --gitlab-token ${GITLAB_TOKEN} \
+                        --release-name "${RELEASE_NAME}" \
+                        --release-description "${RELEASE_DESCRIPTION}" \
+                        --wheels-dir "third_party_wheels" \
+                        --apt-dir "third_party_apt" \
+                        --apt-sources-dir "third_party_apt_sources" \
+                        --gitlab-timeout 60 \
+                        --gitlab-retries 3
+                    """
+                } catch (Exception e) {
+                    echo "Error during third-party package management: ${e.getMessage()}"
+                    error("Failed during package management")
+                }
+
+                echo "Cleaning up workspace..."
+                sh 'rm -rf third_party_wheels third_party_apt third_party_apt_sources || true'
+            }
+            }
+          }
+        }
+
+        stage ('cleanup_scratch_space') {
+          sh 'umount <SHARED_SCRATCH_MOUNT>'
+          sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+        }
+      }
+
+      container("docker") {
+        def IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+
+        stage ('release_docker_build') {
+          retry(count: 3) {
+            // on retries, wait 5 min before re-running
+            script {
+              if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+                echo "Previous attempt failed, sleeping 5 minutes before retry..."
+                sleep time: 5, unit: 'MINUTES'
+              }
+            }
+            gitlabCommitStatus(name: "release_docker_build", connection: gitLabConnection('git-lab-master')) {
+              docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+                sh "docker build -t ${IMAGE_NAME}:main-${BUILD_TYPE}-${BUILD_NUMBER} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                sh "docker push ${IMAGE_NAME}:main-${BUILD_TYPE}-${BUILD_NUMBER}"
+
+                def append_string="pytorch: ${IMAGE_NAME}:main-${BUILD_TYPE}-${BUILD_NUMBER}"
+                def config_file_path = "<SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                sh "python3 ci/update_release_config.py ${config_file_path} '${append_string}'"
+                sh "cat <SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+              }
+            }
+          }
+        }
+
+        stage ('create_manifest') {
+          gitlabCommitStatus(name: "create_manifest", connection: gitLabConnection('git-lab-master')) {
+            docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+              sh "docker buildx imagetools create -t ${IMAGE_NAME}:nightly ${IMAGE_NAME}:main-${BUILD_TYPE}-${BUILD_NUMBER}"
+            }
+          }
+        }
+
+        stage ('cleanup_scratch_space_in_dind') {
+          sh 'umount <SHARED_SCRATCH_MOUNT>'
+          sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+        }
+      }
+    }
+    
+    catch(e) {
+      // Mark build as failed.
+      currentBuild.result = 'FAILURE'
+
+      container('base-image') {
+        stage("Jira Notification on Failure") {
+          withCredentials([string(credentialsId: 'TAO-jira-token', variable: 'jira_token')]) {
+            sh """
+              python3 -m pip install jira
+              python3 ci/create_jira_issue.py --jira_server "https://jirasw.nvidia.com/" \\
+              --username "hqtran@nvidia.com" \\
+              --api_token "${jira_token}" \\
+              --project_key "TLT" \\
+              --summary "Pipeline '${JOB_NAME}' Failure" \\
+              --description \$'The pipeline "${JOB_NAME}" has failed.\nLink to the build: https://prod.blsm.nvidia.com/metropolis-iva-tlt-jenkins/view/tao-pytorch/job/${JOB_NAME}' \\
+              --issue_type "Bug"
+            """
+          }
+        }
+      }
+      
+      // Rethrow the error so the build is marked as failed.
+      throw e
+    }
+  }
+}

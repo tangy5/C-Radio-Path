@@ -1,0 +1,310 @@
+// Global variables - Version is passed to release/update_version.py to patch build files
+def TAO_VERSION = "6.25.7"
+def BUILD_TYPE = "dev"
+
+// Resolve base image from params if provided; otherwise use default digest
+def BASE_IMAGE_DEFAULT = "nvcr.io/nvstaging/tao/tao_pytorch_base_image@sha256:d2a6b648152f7e38168453be38233082964193e70b154fdce16fac39e6b0d9e2"
+def baseImage = (params.BASE_IMAGE_REPO?.trim() && params.BASE_IMAGE_TAG?.trim()) ? "${params.BASE_IMAGE_REPO}:${params.BASE_IMAGE_TAG}" : BASE_IMAGE_DEFAULT
+echo "Using base image ${baseImage}"
+
+def getPulseToken() {
+    def token
+    echo "Getting Pulse token..."
+
+    sh "apk update"
+    sh "apk add curl jq wget python3 py3-pip"
+
+    withCredentials([usernamePassword(credentialsId: 'pulse-client-credentials',
+                                      usernameVariable: 'CLIENT_ID',
+                                      passwordVariable: 'CLIENT_SECRET')]) {
+        token = sh(script: """
+            curl --location --request POST 'https://x9thwm-cootr2q1jdv5p7b8iw4fs4ob3x6nqqsoznyk.ssa.nvidia.com/token' \
+                --user "$CLIENT_ID:$CLIENT_SECRET" \
+                --header 'Content-Type: application/x-www-form-urlencoded' \
+                --data-urlencode 'grant_type=client_credentials' \
+                --data-urlencode 'scope=nspect.verify scan.anchore' | jq -r '.access_token'
+        """, returnStdout: true).trim()
+    }
+
+    echo "${token}"
+    return token
+}
+
+
+podTemplate (cloud:'sc-ipp-blossom-prod', yaml : """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  imagePullSecrets:
+  - name: svc-tlt-ci-ngcimagepullsecret
+  - name: gitlab-tao-imagepullsecret
+  containers:
+  - name: docker
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "32Gi"
+      limits:
+        memory: "64Gi"
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+  - name: base-image
+    image: ${baseImage}
+    securityContext:
+      privileged: true
+    command:
+    - cat
+    resources:
+      requests:
+        nvidia.com/gpu: 1
+        memory: "16Gi"
+      limits:
+        nvidia.com/gpu: 1
+        memory: "64Gi"
+    tty: true
+  restartPolicy: Never
+  backoffLimit: 4
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: nvidia.com/gpu_type
+            operator: In
+            values:
+            - A100_PCIE_40GB
+            - A40
+            - L40
+            - A100_80GB_PCIe
+            - NVIDIA_GH200_480GB
+          - key: nvidia.com/driver_version
+            operator: In
+            values:
+            - 580.35
+            - 580.66
+            - 580.82.07
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+""") {
+  node(POD_LABEL) {
+    container('base-image') {
+      def command_env = ''
+
+      stage ('checkout') {
+        gitlabCommitStatus(name: "checkout", connection: gitLabConnection('git-lab-master')) {
+          checkout scm
+          // Adding this since 22.05+ containers need this in git.
+          sh "git config --global --add safe.directory $WORKSPACE && ls -lrt"
+        }
+      }
+
+      stage ('patch_build_files') {
+        gitlabCommitStatus(name: "patch_build_files", connection: gitLabConnection('git-lab-master')) {
+          sh "python3 release/update_version.py --version ${TAO_VERSION}"
+          echo "Build files patched with version ${TAO_VERSION}"
+        }
+      }
+
+      stage ('smi') {
+        gitlabCommitStatus(name: "smi", connection: gitLabConnection('git-lab-master')) {
+          checkout scm
+          // Adding this since 22.05+ containers need this in git.
+          sh "nvidia-smi"
+        }
+      }
+
+      stage('detect_branch') {
+        script {
+          def detected = (env.gitlabSourceBranch ?: env.gitlabBranch ?: env.CHANGE_BRANCH ?: env.BRANCH_NAME ?: env.GIT_BRANCH)
+          if (detected && detected.startsWith('origin/')) {
+            detected = detected.substring('origin/'.length())
+          }
+          if (!detected) {
+            // Fallback: find the first remote branch that contains the current commit
+            def fromRemote = sh(
+              script: "git fetch --all --prune >/dev/null 2>&1 || true; git for-each-ref --format='%(refname:short)' --contains HEAD refs/remotes/origin | grep -v '^origin/HEAD\$' | head -n1 | sed 's#^origin/##'",
+              returnStdout: true
+            ).trim()
+            detected = fromRemote ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+          }
+          // Replace "/" with "_" to avoid path issues
+          detected = detected.replace('/', '_')
+          env.BRANCH_DETECTED = detected
+          echo "Using branch: ${env.BRANCH_DETECTED}"
+        }
+      }
+      stage ('setup') {
+        gitlabCommitStatus(name: "setup", connection: gitLabConnection('git-lab-master')) {
+          sh "ls -rlt ./"
+          sh "ls -lh ./tests/" // check if lfs pull is successfull
+          sh "source scripts/envsetup.sh"
+        }
+      }
+
+      stage ('setup_scratch_space') {
+        sh 'apt-get update'
+        sh 'apt-get install cifs-utils -y'
+        sh 'env | sort'
+        sh 'mkdir -p <SHARED_SCRATCH_MOUNT>'
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+        withCredentials([usernamePassword(credentialsId: 'svc-tlt-ci-mount', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
+            sh 'mount -t cifs -o "vers=2.0,username=${USERNAME},password=${PASSWORD},dom=nvidia.com,dir_mode=0777,file_mode=0777" //<fileserver>/<share> <SHARED_SCRATCH_MOUNT>'
+        }
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+      }
+    }
+
+    container('base-image') {
+      def workspace_path = pwd()
+      def pythonpath_env = 'PYTHONPATH=' + workspace_path + ':$PYTHONPATH'
+      def ci_path_env = 'CI_PROJECT_DIR=' + workspace_path
+
+      // Use local tmp for fast I/O, then sync to persistent shared storage
+      def persistent_testmon_dir = "<SHARED_SCRATCH_MOUNT>/tao_ci/testmon/${env.BRANCH_DETECTED}/"
+      def local_testmon_dir = "/tmp/tao_ci/testmon/${env.BRANCH_DETECTED}/"
+      def local_testmon_file = "${local_testmon_dir}.testmondata"
+      def persistent_testmon_file = "${persistent_testmon_dir}.testmondata"
+      def testmon_env = "TESTMON_DATAFILE=" + local_testmon_file
+      command_env = pythonpath_env + ' ' + ci_path_env + ' ' + testmon_env
+
+      // Setup local and persistent testmon directories with cache restoration
+      sh """
+        # Setup directories
+        mkdir -p ${persistent_testmon_dir}
+        mkdir -p ${local_testmon_dir}
+
+        # Clean up SQLite WAL/SHM files that might cause issues
+        find ${persistent_testmon_dir} -name "*.testmondata-wal" -o -name "*.testmondata-shm" -mmin +30 -delete 2>/dev/null || true
+
+        # Copy testmon database from persistent storage to local tmp if it exists
+        if [ -f "${persistent_testmon_file}" ]; then
+          # Check if database is not too old (>7 days)
+          if [ \$(find "${persistent_testmon_file}" -mtime +7 2>/dev/null | wc -l) -eq 0 ]; then
+            echo "Restoring testmon database from persistent storage..."
+            ls -ltrah "${persistent_testmon_file}"
+            cp "${persistent_testmon_file}" "${local_testmon_dir}" || true
+            echo "Testmon database restored from persistent storage:"
+            ls -ltrah "${local_testmon_dir}"
+          else
+            echo "Testmon database is older than 7 days, will create fresh one..."
+            rm -f ${persistent_testmon_file}* || true
+          fi
+        fi
+      """
+
+      stage ("functional_tests") {
+        withCredentials([
+          string(credentialsId: 'NGC_CLI_API_KEY_SVC_TLT_CI', variable: 'NGC_CLI_API_KEY'),
+          string(credentialsId: 'HF_TOKEN_CI', variable: 'HF_TOKEN')
+        ]) {
+          script{
+            env.NGC_KEY=NGC_CLI_API_KEY
+            env.NGC_PATH='ea-tlt/tao_ea/pretrained_dino_imagenet:fan_hybrid_tiny'
+            env.HF_TOKEN=HF_TOKEN
+          }
+        }
+        gitlabCommitStatus(name: "functional_tests", connection: gitLabConnection('git-lab-master')) {
+          // Build setup without caching - always run fresh
+          echo "Running setup.py develop..."
+          sh "python setup.py develop"
+          sh "CPUCOUNT=1 pip install tao-core/"
+          sh "pip install pytest-cov==7.0.0"
+          sh "pip install pytest-testmon==2.1.3"
+
+          // Ensure testmon directory exists
+          sh "mkdir -p ${local_testmon_dir}"
+          sh "ls -lahtr ${local_testmon_dir}"
+
+          script {
+            def testException = null
+            try {
+              // Run tests with testmon
+              echo "Running tests with testmon..."
+              sh "${command_env} python3 ci/run_functional_tests.py --cov=nvidia_tao_pytorch --cov-report=xml:coverage.xml --cov-report=term"
+              archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+            } catch (Exception e) {
+              testException = e
+              echo "Tests failed: ${e.message}"
+            } finally {
+              // Always sync testmon database back to persistent storage, regardless of test results
+              echo "Syncing testmon database to persistent storage..."
+              sh """
+                if [ -f "${local_testmon_file}" ]; then
+                  ls -lahtr ${local_testmon_dir}
+                  cp ${local_testmon_file}* ${persistent_testmon_dir} || true
+                  echo "Testmon database synced to persistent storage"
+                  ls -lahtr ${persistent_testmon_dir}
+                else
+                  echo "No testmon database found to sync"
+                fi
+              """
+            }
+            
+            // Re-throw the exception to ensure pipeline fails if tests failed
+            if (testException) {
+              throw testException
+            }
+          }
+        }
+      }
+
+      stage ('cache_maintenance') {
+        // Clean up old testmon files and local tmp files
+        script {
+          def persistent_testmon_base = "<SHARED_SCRATCH_MOUNT>/tao_ci/testmon"
+          def local_cache_base = "/tmp/tao_ci"
+          sh """
+            echo "Cleaning up testmon caches..."
+            if [ -d "${persistent_testmon_base}" ]; then
+              echo "Cleaning up old testmon files..."
+              # Clean up old testmon databases (older than a week)
+              find ${persistent_testmon_base} -name ".testmondata*" -mtime +7 -delete 2>/dev/null || true
+              # Clean up SQLite temporary files
+              find ${persistent_testmon_base} -name "*.testmondata-wal" -o -name "*.testmondata-shm" -mtime +7 -delete 2>/dev/null || true
+              echo "Testmon cleanup completed"
+            fi
+            
+            echo "Cleaning up local tmp caches..."
+            if [ -d "${local_cache_base}" ]; then
+              rm -rf ${local_cache_base} || true
+              echo "Local tmp cache cleanup completed"
+            fi
+          """
+        }
+      }
+
+      stage ('cleanup_scratch_space') {
+        sh 'umount <SHARED_SCRATCH_MOUNT>'
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+      }
+    }
+
+    container("docker") {
+      stage ('sonarqube_analysis') {
+        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+          gitlabCommitStatus(name: "sonarqube_analysis", connection: gitLabConnection('git-lab-master')) {
+            def branchName = params.GITLAB_BRANCH ?: params.BRANCH_NAME ?: env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'main'
+            echo "Analyzing branch: ${branchName}"
+            echo "Available parameters: GITLAB_BRANCH=${params.GITLAB_BRANCH}, BRANCH_NAME=${params.BRANCH_NAME}"
+            echo "Available env vars: BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}"
+            
+            docker.image('sonarsource/sonar-scanner-cli:11').inside() {
+              withSonarQubeEnv() {
+                sh "sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.sources=nvidia_tao_pytorch -Dsonar.tests=tests -Dsonar.branch.name=${branchName}"
+              }
+            }
+            echo "SonarQube analysis completed successfully"
+          }
+        }
+      }
+    }
+  }
+}

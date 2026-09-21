@@ -1,0 +1,201 @@
+// Global variables - Version is passed to release/update_version.py to patch build files
+def TAO_VERSION = "6.25.7"
+def BUILD_TYPE = "dev"
+
+def getPulseToken() {
+    def token
+    echo "Getting Pulse token..."
+
+    sh "apk update"
+    sh "apk add curl jq wget python3 py3-pip"
+
+    withCredentials([usernamePassword(credentialsId: 'pulse-client-credentials',
+                                      usernameVariable: 'CLIENT_ID',
+                                      passwordVariable: 'CLIENT_SECRET')]) {
+        token = sh(script: """
+            curl --location --request POST 'https://x9thwm-cootr2q1jdv5p7b8iw4fs4ob3x6nqqsoznyk.ssa.nvidia.com/token' \
+                --user "$CLIENT_ID:$CLIENT_SECRET" \
+                --header 'Content-Type: application/x-www-form-urlencoded' \
+                --data-urlencode 'grant_type=client_credentials' \
+                --data-urlencode 'scope=nspect.verify scan.anchore' | jq -r '.access_token'
+        """, returnStdout: true).trim()
+    }
+
+    echo "${token}"
+    return token
+}
+
+
+podTemplate (cloud:'sc-ipp-blossom-prod', yaml : """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  imagePullSecrets:
+  - name: svc-tlt-ci-ngcimagepullsecret
+  - name: gitlab-tao-imagepullsecret
+  containers:
+  - name: docker
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "32Gi"
+      limits:
+        memory: "64Gi"
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+  - name: base-image
+    image: nvcr.io/nvstaging/tao/tao_pytorch_base_image@sha256:e8fcd909e4e5ffd613a4ec056dad3c277604664852ff663bb0729d883d59acd1
+    securityContext:
+      privileged: true
+    command:
+    - cat
+    resources:
+      requests:
+        nvidia.com/gpu: 1
+        memory: "16Gi"
+      limits:
+        nvidia.com/gpu: 1
+        memory: "64Gi"
+    tty: true
+  restartPolicy: Never
+  backoffLimit: 4
+  nodeSelector:
+    kubernetes.io/os: linux
+    nvidia.com/gpu_type: A100_PCIE_40GB
+    nvidia.com/driver_version: "580.35"
+""") {
+  node(POD_LABEL) {
+    container('base-image') {
+      def command_env = ''
+
+      stage ('checkout') {
+        gitlabCommitStatus(name: "checkout", connection: gitLabConnection('git-lab-master')) {
+          checkout scm
+          // Adding this since 22.05+ containers need this in git.
+          sh "git config --global --add safe.directory $WORKSPACE && ls -lrt"
+        }
+      }
+
+      stage ('patch_build_files') {
+        gitlabCommitStatus(name: "patch_build_files", connection: gitLabConnection('git-lab-master')) {
+          sh "python3 release/update_version.py --version ${TAO_VERSION}"
+          echo "Build files patched with version ${TAO_VERSION}"
+        }
+      }
+
+      stage ('smi') {
+        gitlabCommitStatus(name: "smi", connection: gitLabConnection('git-lab-master')) {
+          checkout scm
+          // Adding this since 22.05+ containers need this in git.
+          sh "nvidia-smi"
+        }
+      }
+
+      stage ('setup') {
+        gitlabCommitStatus(name: "setup", connection: gitLabConnection('git-lab-master')) {
+          sh "ls -rlt ./"
+          sh "ls -lh ./tests/" // check if lfs pull is successfull
+          sh "source scripts/envsetup.sh"
+        }
+      }
+
+      stage ('setup_scratch_space') {
+        sh 'apt-get update'
+        sh 'apt-get install cifs-utils -y'
+        sh 'env | sort'
+        sh 'mkdir -p <SHARED_SCRATCH_MOUNT>'
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+        withCredentials([usernamePassword(credentialsId: 'svc-tlt-ci-mount', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
+            sh 'mount -t cifs -o "vers=2.0,username=${USERNAME},password=${PASSWORD},dom=nvidia.com,dir_mode=0444,file_mode=0444" //<fileserver>/<share> <SHARED_SCRATCH_MOUNT>'
+        }
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+      }
+    }
+
+    container('base-image') {
+      def workspace_path = pwd()
+      def pythonpath_env = 'PYTHONPATH=' + workspace_path + ':$PYTHONPATH'
+      def ci_path_env = 'CI_PROJECT_DIR=' + workspace_path
+      command_env = pythonpath_env + ' ' + ci_path_env
+
+      stage ("functional_tests") {
+        withCredentials([string(credentialsId: 'NGC_CLI_API_KEY_SVC_TLT_CI', variable: 'NGC_CLI_API_KEY')]) {
+          script{
+            env.NGC_KEY=NGC_CLI_API_KEY
+            env.NGC_PATH='ea-tlt/tao_ea/pretrained_dino_imagenet:fan_hybrid_tiny'
+          }
+        }
+        gitlabCommitStatus(name: "functional_tests", connection: gitLabConnection('git-lab-master')) {
+          sh "python setup.py develop"
+          sh "CPUCOUNT=1 pip install tao-core/"
+          sh "pip install pytest-cov"
+          sh "${command_env} python3 ci/run_functional_tests.py --cov=nvidia_tao_pytorch --cov-report=xml:coverage.xml --cov-report=term"
+          archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+        }
+      }
+
+      stage ('build_wheel') {
+        gitlabCommitStatus(name: "build_wheel", connection: gitLabConnection('git-lab-master')) {
+          // Building the wheels for the tao source code.
+          // Extract patch number from TAO_VERSION (e.g., "6.25.7" -> "7")
+          def VERSION_PARTS = TAO_VERSION.split('\\.')
+          def PATCH_NUMBER = VERSION_PARTS[-1]
+          def VER="${TAO_VERSION}.${BUILD_TYPE}${BUILD_NUMBER}"
+          sh "echo '${PATCH_NUMBER}.${BUILD_TYPE}${BUILD_NUMBER}' > build.info"
+          build_env = command_env
+          sh "${build_env} python setup.py bdist_wheel"
+          sh "pip install dist/nvidia_tao_pytorch-*.whl"
+        }
+      }
+
+      stage ('cleanup_scratch_space') {
+        sh 'umount <SHARED_SCRATCH_MOUNT>'
+        sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+      }
+    }
+
+    container("docker"){
+      stage ('sonarqube_analysis') {
+        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+          gitlabCommitStatus(name: "sonarqube_analysis", connection: gitLabConnection('git-lab-master')) {
+            def branchName = params.GITLAB_BRANCH ?: params.BRANCH_NAME ?: env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'main'
+            echo "Analyzing branch: ${branchName}"
+            echo "Available parameters: GITLAB_BRANCH=${params.GITLAB_BRANCH}, BRANCH_NAME=${params.BRANCH_NAME}"
+            echo "Available env vars: BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}"
+            
+            docker.image('sonarsource/sonar-scanner-cli:11').inside() {
+              withSonarQubeEnv() {
+                sh "sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.sources=nvidia_tao_pytorch -Dsonar.tests=tests -Dsonar.branch.name=${branchName}"
+              }
+            }
+            echo "SonarQube analysis completed successfully"
+          }
+        }
+      }
+      
+      stage ('build_docker_image') {
+        retry(count: 3) {
+          // on retries, wait 5 min before re-running
+          script {
+            if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+              echo "Previous attempt failed, sleeping 5 minutes before retry..."
+              sleep time: 5, unit: 'MINUTES'
+            }
+          }
+          gitlabCommitStatus(name: "build_docker_image", connection: gitLabConnection('git-lab-master')) {
+            def IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+            docker.withRegistry('https://nvcr.io', 'NGC_API_KEY'){
+              sh "docker build -t ${IMAGE_NAME}:${TAO_VERSION}-${BUILD_TYPE}-${BUILD_NUMBER} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

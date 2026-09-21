@@ -1,0 +1,970 @@
+// Global variables
+def TAO_VERSION = params.TAO_VERSION ?: "6.25.10"
+def BUILD_TYPE = "rc"
+
+// Normalize patch segment if TAO_VERSION is provided via params (e.g., 6.25.09 -> 6.25.9)
+if (params.TAO_VERSION) {
+  def _parts = TAO_VERSION.split('\\.')
+  if (_parts.length >= 3) {
+    def _patchNorm = _parts[-1]
+    try {
+      _patchNorm = Integer.parseInt(_patchNorm).toString()
+    } catch (Exception ignore) {}
+    TAO_VERSION = "${_parts[0]}.${_parts[1]}.${_patchNorm}"
+  }
+}
+
+// Helper functions
+def updateCoreSubmodule(String gitToken) {
+  def releaseBranch = "release/${TAO_VERSION}"
+  echo "Target release branch: ${releaseBranch}"
+  
+  sh "cp .gitmodules .gitmodules.backup"
+  
+  try {
+    sh """
+      git config --global credential.helper store
+      echo "https://oauth2:${gitToken}@gitlab-master.nvidia.com" > ~/.git-credentials
+      git fetch origin ${releaseBranch}
+      git checkout ${releaseBranch} || git checkout -b ${releaseBranch} origin/${releaseBranch}
+      git config -f .gitmodules submodule.tao-core.url https://gitlab-master.nvidia.com/nvidia-tao-toolkit/tao-core.git
+      git config -f .gitmodules submodule.tao-core.branch ${releaseBranch}
+      git submodule sync
+      git submodule update --init --remote tao-core
+      git config --global --add safe.directory $WORKSPACE/tao-core
+    """
+    
+    def coreCommitSha = sh(script: "cd tao-core && git rev-parse HEAD", returnStdout: true).trim()
+    echo "tao-core submodule SHA: ${coreCommitSha}"
+    
+    def submoduleStatus = sh(script: "git status --porcelain tao-core", returnStdout: true).trim()
+    
+    if (submoduleStatus) {
+      echo "Submodule tao-core has updates. Committing..."
+      sh """
+        mv .gitmodules.backup .gitmodules
+        git add tao-core
+        git config user.email "christwang@nvidia.com"
+        git config user.name "TAO Release CI"
+        git commit -m "TAO Release CI - update core submodule"
+        git push https://oauth2:${gitToken}@gitlab-master.nvidia.com/nvidia-tao-toolkit/tao-pytorch.git HEAD:${releaseBranch}
+      """
+    } else {
+      sh "mv .gitmodules.backup .gitmodules"
+    }
+  } catch (Exception e) {
+    sh "mv .gitmodules.backup .gitmodules || true"
+    throw e
+  } finally {
+    sh """
+      rm -f ~/.git-credentials ~/.gitconfig || true
+      git config --global --unset credential.helper || true
+      find $WORKSPACE -name '.git-credentials' -type f -delete || true
+    """
+  }
+}
+
+def setupScratchSpace() {
+  sh '''
+    apt-get update
+    apt-get install cifs-utils -y
+    mkdir -p <SHARED_SCRATCH_MOUNT>
+  '''
+  withCredentials([usernamePassword(credentialsId: 'svc-tlt-ci-mount', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+    sh 'mount -t cifs -o "vers=2.0,username=${USERNAME},password=${PASSWORD},dom=nvidia.com,dir_mode=0777,file_mode=0777" //<fileserver>/<share> <SHARED_SCRATCH_MOUNT>'
+  }
+  sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+}
+
+def cleanupScratchSpace() {
+  sh '''
+    umount <SHARED_SCRATCH_MOUNT> || true
+    ls -l <SHARED_SCRATCH_MOUNT>
+  '''
+}
+
+def setupScratchSpaceDind() {
+  sh '''
+    apk update
+    apk add cifs-utils python3 py3-pip
+    python3 -m pip install pyyaml
+    mkdir -p <SHARED_SCRATCH_MOUNT>
+  '''
+  withCredentials([usernamePassword(credentialsId: 'svc-tlt-ci-mount', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+    sh 'mount -t cifs -o "vers=2.0,username=${USERNAME},password=${PASSWORD},dom=nvidia.com,dir_mode=0777,file_mode=0777" //<fileserver>/<share> <SHARED_SCRATCH_MOUNT>'
+  }
+  sh 'ls -l <SHARED_SCRATCH_MOUNT>'
+}
+
+pipeline {
+  agent none
+  
+  parameters {
+    string(name: 'TAO_VERSION', defaultValue: '6.25.10', description: 'TAO version for the build')
+    booleanParam(name: 'RC', defaultValue: true, description: 'Release Candidate build')
+  }
+  
+  stages {
+    stage('Multi-Arch Build') {
+      failFast false
+      parallel {
+        // X86 Pipeline
+        stage('x86') {
+          agent {
+            kubernetes {
+              cloud 'sc-ipp-blossom-prod'
+              yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: tao-pytorch-release-x86
+spec:
+  imagePullSecrets:
+  - name: svc-tlt-ci-ngcimagepullsecret
+  - name: gitlab-tao-imagepullsecret
+  containers:
+  - name: docker
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "32Gi"
+      limits:
+        memory: "64Gi"
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+  - name: base-image
+    image: nvcr.io/nvstaging/tao/tao_pytorch_base_image@sha256:d2a6b648152f7e38168453be38233082964193e70b154fdce16fac39e6b0d9e2
+    securityContext:
+      privileged: true
+    command:
+    - cat
+    resources:
+      requests:
+        nvidia.com/gpu: 1
+        memory: "16Gi"
+      limits:
+        nvidia.com/gpu: 1
+        memory: "64Gi"
+    tty: true
+  restartPolicy: Never
+  backoffLimit: 4
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: nvidia.com/gpu_type
+            operator: In
+            values:
+            - A100_80GB_PCIE
+            - A100_PCIE_40GB
+            - A40
+            - L40
+          - key: nvidia.com/driver_version
+            operator: In
+            values:
+            - 580.35
+            - 580.66
+            - 580.82.07
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+"""
+            }
+          }
+          
+          stages {
+            stage('x86_checkout') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "x86_checkout", connection: gitLabConnection('git-lab-master')) {
+                    checkout scm
+                    sh "git config --global --add safe.directory $WORKSPACE && ls -lrt"
+                  }
+                }
+              }
+            }
+            
+            stage('x86_gpu_check') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "x86_gpu_check", connection: gitLabConnection('git-lab-master')) {
+                    sh 'nvidia-smi'
+                  }
+                }
+              }
+            }
+            
+            stage('x86_update_core_submodule') {
+              steps {
+                container('base-image') {
+                  catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    gitlabCommitStatus(name: "x86_update_core_submodule", connection: gitLabConnection('git-lab-master')) {
+                      withCredentials([string(credentialsId: 'gitlab-api-token', variable: 'GITLAB_TOKEN')]) {
+                        script {
+                          updateCoreSubmodule(GITLAB_TOKEN)
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_patch_build_files') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "x86_patch_build_files", connection: gitLabConnection('git-lab-master')) {
+                    sh "python3 release/update_version.py --version ${TAO_VERSION}"
+                    echo "Build files patched with version ${TAO_VERSION}"
+                  }
+                }
+              }
+            }
+            
+            stage('x86_setup') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "x86_setup", connection: gitLabConnection('git-lab-master')) {
+                    script {
+                      sh "ls -rlt ./"
+                      sh "ls -lh ./tests/"
+                      sh "source scripts/envsetup.sh"
+                      def workspace_path = pwd()
+                      env.X86_COMMAND_ENV = "PYTHONPATH=${workspace_path}:\$PYTHONPATH CI_PROJECT_DIR=${workspace_path}"
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_setup_scratch_space') {
+              steps {
+                container('base-image') {
+                  script {
+                    setupScratchSpace()
+                  }
+                }
+              }
+            }
+            
+            stage('x86_setup_scratch_space_dind') {
+              steps {
+                container('docker') {
+                  script {
+                    sh 'uname -a'
+                    setupScratchSpaceDind()
+                  }
+                }
+              }
+            }
+            
+            stage('x86_functional_tests') {
+              when {
+                expression { return params.RC }
+              }
+              steps {
+                container('base-image') {
+                  catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    withCredentials([
+                      string(credentialsId: 'NGC_CLI_API_KEY_SVC_TLT_CI', variable: 'NGC_CLI_API_KEY'),
+                      string(credentialsId: 'HF_TOKEN_CI', variable: 'HF_TOKEN')
+                    ]) {
+                      script {
+                        env.NGC_KEY = NGC_CLI_API_KEY
+                        env.NGC_PATH = 'ea-tlt/tao_ea/pretrained_dino_imagenet:fan_hybrid_tiny'
+                        env.HF_TOKEN = HF_TOKEN
+                      }
+                    }
+                    gitlabCommitStatus(name: "x86_functional_tests", connection: gitLabConnection('git-lab-master')) {
+                      echo "Running functional tests with coverage for RC build..."
+                      sh "python setup.py develop"
+                      sh "CPUCOUNT=1 pip install tao-core/"
+                      sh "pip install pytest-cov"
+                      sh "${env.X86_COMMAND_ENV} python3 ci/run_functional_tests.py --cov=nvidia_tao_pytorch --cov-report=xml:coverage.xml --cov-report=term"
+                      archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_sonarqube_analysis') {
+              when {
+                expression { return params.RC }
+              }
+              steps {
+                container('docker') {
+                  catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    gitlabCommitStatus(name: "x86_sonarqube_analysis", connection: gitLabConnection('git-lab-master')) {
+                      script {
+                        def branchName = params.GITLAB_BRANCH ?: params.BRANCH_NAME ?: env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'main'
+                        echo "Analyzing branch: ${branchName}"
+                        
+                        docker.image('sonarsource/sonar-scanner-cli:11').inside() {
+                          withSonarQubeEnv() {
+                            sh "sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.sources=nvidia_tao_pytorch -Dsonar.tests=tests -Dsonar.branch.name=${branchName}"
+                          }
+                        }
+                        echo "SonarQube analysis completed successfully"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_build_wheel') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "x86_build_wheel", connection: gitLabConnection('git-lab-master')) {
+                    script {
+                      def VER
+                      if (params.RC) {
+                        VER = "${TAO_VERSION}.${BUILD_TYPE}${BUILD_NUMBER}"
+                      } else {
+                        VER = "${TAO_VERSION}"
+                      }
+
+                      def VERSION_PARTS = TAO_VERSION.split('\\.')
+                      def PATCH_NUMBER = VERSION_PARTS[-1]
+                      
+                      if (params.RC) {
+                        sh "echo '${PATCH_NUMBER}${BUILD_TYPE}${BUILD_NUMBER}' > build.info"
+                      } else {
+                        sh "echo '${PATCH_NUMBER}' > build.info"
+                      }
+                      sh "${env.X86_COMMAND_ENV} python setup.py bdist_wheel"
+                      sh "pip install dist/nvidia_tao_pytorch-*.whl"
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_wheel_publish') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "x86_wheel_publish", connection: gitLabConnection('git-lab-master')) {
+                    script {
+                      sh "bash ${WORKSPACE}/docker/install_jfrog.sh"
+                      
+                      def VERSION_PARTS = TAO_VERSION.split('\\.')
+                      def MAJOR_MINOR = "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
+                      def PATCH_NUMBER = VERSION_PARTS[-1]
+                      def PYTHON_VER = "cp312-cp312"
+                      def ARCH = "linux_x86_64"
+                      
+                      def VER
+                      def SRC
+                      
+                      withCredentials([usernamePassword(credentialsId: 'tao-artifactory-tkn-christwang', passwordVariable: 'JFROG_PASSWORD', usernameVariable: 'JFROG_USERNAME')]) {
+                        // Upload RC version wheel if this is an RC build
+                        if (params.RC) {
+                          def RC_VER = "${MAJOR_MINOR}.${PATCH_NUMBER}${BUILD_TYPE}${BUILD_NUMBER}"
+                          VER = RC_VER
+                          SRC = "dist/nvidia_tao_pytorch-${RC_VER}-${PYTHON_VER}-${ARCH}.whl"
+                          
+                          echo "=== Uploading RC version wheel ==="
+                          def RC_TARGET = "sw-tao-pypi-local/nvidia-tao-pytorch/${RC_VER}/"
+                          def RC_PROP = "component_name=nvidia-tao-pytorch;arch=x86_64;os=linux;build_source=None;version=${RC_VER};branch=main;release_approver=vpraveen"
+                          
+                          echo "Uploading RC wheel: ${SRC} to ${RC_TARGET}"
+                          sh "cp ${SRC} dist/nvidia_tao_pytorch-${RC_VER}-${PYTHON_VER}-manylinux1_x86_64.whl"
+                          sh "jfrog rt u --url=https://urm.nvidia.com/artifactory/ --user=${JFROG_USERNAME} --password=${JFROG_PASSWORD} --target-props '${RC_PROP}' dist/nvidia_tao_pytorch-${RC_VER}-${PYTHON_VER}-manylinux1_x86_64.whl ${RC_TARGET}"
+                        } else {
+                          VER = "${MAJOR_MINOR}.${PATCH_NUMBER}"
+                          SRC = "dist/nvidia_tao_pytorch-${VER}-${PYTHON_VER}-${ARCH}.whl"
+                        }
+                        
+                        // Upload final version wheel (runs for both RC and non-RC)
+                        echo "=== Uploading final version wheel ==="
+                        def FINAL_VER = "${MAJOR_MINOR}.${PATCH_NUMBER}"
+                        def FINAL_TARGET = "sw-tao-pypi-local/nvidia-tao-pytorch/${FINAL_VER}/"
+                        def FINAL_PROP = "component_name=nvidia-tao-pytorch;arch=x86_64;os=linux;build_source=None;version=${FINAL_VER};branch=main;release_approver=vpraveen"
+                        
+                        // For RC builds, rebuild wheel with non-RC version for correct internal metadata
+                        if (params.RC) {
+                          echo "Rebuilding wheel with non-RC version for final release..."
+                          sh "rm -rf dist/*"
+                          sh "echo '${PATCH_NUMBER}' > build.info"
+                          sh "${env.X86_COMMAND_ENV} python setup.py bdist_wheel"
+                          SRC = "dist/nvidia_tao_pytorch-${FINAL_VER}-${PYTHON_VER}-${ARCH}.whl"
+                          echo "Built final wheel: ${SRC}"
+                        }
+                        
+                        echo "Checking for existing final version wheel..."
+                        def finalWheelPattern = "${FINAL_TARGET}dist/nvidia_tao_pytorch-${FINAL_VER}-${PYTHON_VER}-manylinux1_x86_64.whl"
+                        echo "Searching for pattern: ${finalWheelPattern}"
+                        
+                        def searchStatus = sh(script: "jfrog rt s --url=https://urm.nvidia.com/artifactory/ --user=${JFROG_USERNAME} --password=${JFROG_PASSWORD} '${finalWheelPattern}' --count", returnStatus: true)
+                        def count = 0
+                        if (searchStatus == 0) {
+                          count = Integer.parseInt(sh(script: "jfrog rt s --url=https://urm.nvidia.com/artifactory/ --user=${JFROG_USERNAME} --password=${JFROG_PASSWORD} '${finalWheelPattern}' --count", returnStdout: true).trim())
+                        } else {
+                          echo "Search command returned non-zero (status=${searchStatus}). Treating as no existing wheel."
+                        }
+                        
+                        if (count > 0) {
+                          echo "Found ${count} existing final version wheel(s). Removing..."
+                          try {
+                            sh "jfrog rt del --url=https://urm.nvidia.com/artifactory/ --user=${JFROG_USERNAME} --password=${JFROG_PASSWORD} '${finalWheelPattern}' --quiet"
+                            echo "Successfully removed existing final version wheel"
+                          } catch (Exception e) {
+                            echo "Warning: Failed to delete existing final version wheel: ${e.getMessage()}"
+                            echo "Continuing with upload..."
+                          }
+                        } else {
+                          echo "No existing final version wheel found (search count: ${count})"
+                        }
+                        
+                        echo "Uploading final version wheel: ${SRC} to ${FINAL_TARGET}"
+                        sh "cp ${SRC} dist/nvidia_tao_pytorch-${FINAL_VER}-${PYTHON_VER}-manylinux1_x86_64.whl"
+                        sh "jfrog rt u --url=https://urm.nvidia.com/artifactory/ --user=${JFROG_USERNAME} --password=${JFROG_PASSWORD} --target-props '${FINAL_PROP}' dist/nvidia_tao_pytorch-${FINAL_VER}-${PYTHON_VER}-manylinux1_x86_64.whl ${FINAL_TARGET}"
+                        
+                        def append_string = "pytorch_wheel: nvidia_tao_pytorch-${VER}-${PYTHON_VER}-${ARCH}.whl"
+                        def config_file_path = "<SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                        sh "python3 ci/update_release_config.py ${config_file_path} '${append_string}'"
+                        sh "cat <SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_cleanup_scratch_space') {
+              steps {
+                container('base-image') {
+                  script {
+                    cleanupScratchSpace()
+                  }
+                }
+              }
+            }
+            
+            stage('x86_release_docker_build') {
+              steps {
+                container('docker') {
+                  retry(count: 3) {
+                    script {
+                      if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+                        echo "Previous attempt failed, sleeping 5 minutes before retry..."
+                        sleep time: 5, unit: 'MINUTES'
+                      }
+                    }
+                    gitlabCommitStatus(name: "x86_release_docker_build", connection: gitLabConnection('git-lab-master')) {
+                      script {
+                        def IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+                        def TARGETARCH = "amd64"
+                        
+                        docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+                          if (params.RC) {
+                            def RC_IMAGE_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-x86"
+                            sh "docker build -t ${IMAGE_NAME}:${RC_IMAGE_TAG} --build-arg TARGETARCH=${TARGETARCH} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                            sh "docker push ${IMAGE_NAME}:${RC_IMAGE_TAG}"
+                            
+                            def append_string = "pytorch: ${IMAGE_NAME}:${RC_IMAGE_TAG}"
+                            def config_file_path = "<SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                            sh "python3 ci/update_release_config.py ${config_file_path} '${append_string}'"
+                            sh "cat <SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                          } else {
+                            def UNIFIED_IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit"
+                            def UNIFIED_IMAGE_TAG = "${TAO_VERSION}-pyt-x86"
+                            
+                            echo "Checking for existing Docker image..."
+                            def imageExists = sh(script: "docker manifest inspect ${UNIFIED_IMAGE_NAME}:${UNIFIED_IMAGE_TAG} > /dev/null 2>&1", returnStatus: true)
+                            if (imageExists == 0) {
+                              echo "Existing image found. Note: Manual removal may be required from registry"
+                            }
+                            
+                            sh "docker build -t ${UNIFIED_IMAGE_NAME}:${UNIFIED_IMAGE_TAG} --build-arg TARGETARCH=${TARGETARCH} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                            sh "docker push ${UNIFIED_IMAGE_NAME}:${UNIFIED_IMAGE_TAG}"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_docker_coverage_build') {
+              when {
+                expression { return params.RC }
+              }
+              steps {
+                container('docker') {
+                  retry(count: 3) {
+                    script {
+                      if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+                        echo "Previous attempt failed, sleeping 5 minutes before retry..."
+                        sleep time: 5, unit: 'MINUTES'
+                      }
+                    }
+                    gitlabCommitStatus(name: "x86_docker_coverage_build", connection: gitLabConnection('git-lab-master')) {
+                      script {
+                        def IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+                        def TARGETARCH = "amd64"
+                        def RC_IMAGE_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}"
+                        
+                        docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+                          sh "cat coverage_build.txt >> ${WORKSPACE}/release/docker/Dockerfile"
+                          sh "cat ${WORKSPACE}/release/docker/Dockerfile"
+                          sh "docker build -t ${IMAGE_NAME}:${RC_IMAGE_TAG}-cc-x86 --build-arg TARGETARCH=${TARGETARCH} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                          sh "docker push ${IMAGE_NAME}:${RC_IMAGE_TAG}-cc-x86"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('x86_cleanup_scratch_space_dind') {
+              steps {
+                container('docker') {
+                  script {
+                    cleanupScratchSpace()
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // ARM Pipeline
+        stage('arm') {
+          agent {
+            kubernetes {
+              cloud 'sc-ipp-blossom-prod'
+              yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: tao-pytorch-release-arm
+spec:
+  imagePullSecrets:
+  - name: svc-tlt-ci-ngcimagepullsecret
+  - name: gitlab-tao-imagepullsecret
+  containers:
+  - name: docker
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "32Gi"
+      limits:
+        memory: "64Gi"
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+  - name: base-image
+    image: nvcr.io/nvstaging/tao/tao_pytorch_base_image@sha256:ae074308d179d1353a98b9af8a478b96a175e2422e7b24312519c0f2a4cd7db8
+    securityContext:
+      privileged: true
+    command:
+    - cat
+    resources:
+      requests:
+        nvidia.com/gpu: 1
+        memory: "16Gi"
+      limits:
+        nvidia.com/gpu: 1
+        memory: "64Gi"
+    tty: true
+  restartPolicy: Never
+  backoffLimit: 4
+  nodeSelector:
+    kubernetes.io/os: linux
+    nvidia.com/gpu_type: NVIDIA_GH200_480GB
+    kubernetes.io/arch: arm64
+"""
+            }
+          }
+          
+          stages {
+            stage('arm_checkout') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "arm_checkout", connection: gitLabConnection('git-lab-master')) {
+                    checkout scm
+                    sh "git config --global --add safe.directory $WORKSPACE && ls -lrt"
+                  }
+                }
+              }
+            }
+            
+            stage('arm_gpu_check') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "arm_gpu_check", connection: gitLabConnection('git-lab-master')) {
+                    sh 'nvidia-smi'
+                  }
+                }
+              }
+            }
+            
+            stage('arm_update_core_submodule') {
+              steps {
+                container('base-image') {
+                  catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    gitlabCommitStatus(name: "arm_update_core_submodule", connection: gitLabConnection('git-lab-master')) {
+                      withCredentials([string(credentialsId: 'gitlab-api-token', variable: 'GITLAB_TOKEN')]) {
+                        script {
+                          updateCoreSubmodule(GITLAB_TOKEN)
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('arm_patch_build_files') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "arm_patch_build_files", connection: gitLabConnection('git-lab-master')) {
+                    sh "python3 release/update_version.py --version ${TAO_VERSION}"
+                    echo "Build files patched with version ${TAO_VERSION}"
+                  }
+                }
+              }
+            }
+            
+            stage('arm_setup') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "arm_setup", connection: gitLabConnection('git-lab-master')) {
+                    script {
+                      sh "ls -rlt ./"
+                      sh "ls -lh ./tests/"
+                      sh "source scripts/envsetup.sh"
+                      def workspace_path = pwd()
+                      env.ARM_COMMAND_ENV = "PYTHONPATH=${workspace_path}:\$PYTHONPATH CI_PROJECT_DIR=${workspace_path}"
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('arm_setup_scratch_space') {
+              steps {
+                container('base-image') {
+                  script {
+                    setupScratchSpace()
+                  }
+                }
+              }
+            }
+            
+            stage('arm_setup_scratch_space_dind') {
+              steps {
+                container('docker') {
+                  script {
+                    sh 'uname -a'
+                    setupScratchSpaceDind()
+                  }
+                }
+              }
+            }
+            
+            stage('arm_build_wheel') {
+              steps {
+                container('base-image') {
+                  gitlabCommitStatus(name: "arm_build_wheel", connection: gitLabConnection('git-lab-master')) {
+                    script {
+                      def VER
+                      if (params.RC) {
+                        VER = "${TAO_VERSION}.${BUILD_TYPE}${BUILD_NUMBER}"
+                      } else {
+                        VER = "${TAO_VERSION}"
+                      }
+
+                      def VERSION_PARTS = TAO_VERSION.split('\\.')
+                      def PATCH_NUMBER = VERSION_PARTS[-1]
+                      
+                      if (params.RC) {
+                        sh "echo '${PATCH_NUMBER}${BUILD_TYPE}${BUILD_NUMBER}' > build.info"
+                      } else {
+                        sh "echo '${PATCH_NUMBER}' > build.info"
+                      }
+                      sh "${env.ARM_COMMAND_ENV} python setup.py bdist_wheel"
+                      sh "pip install dist/nvidia_tao_pytorch-*.whl"
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('arm_cleanup_scratch_space') {
+              steps {
+                container('base-image') {
+                  script {
+                    cleanupScratchSpace()
+                  }
+                }
+              }
+            }
+            
+            stage('arm_release_docker_build') {
+              steps {
+                container('docker') {
+                  retry(count: 3) {
+                    script {
+                      if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+                        echo "Previous attempt failed, sleeping 5 minutes before retry..."
+                        sleep time: 5, unit: 'MINUTES'
+                      }
+                    }
+                    gitlabCommitStatus(name: "arm_release_docker_build", connection: gitLabConnection('git-lab-master')) {
+                      script {
+                        def IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+                        def TARGETARCH = "arm64"
+                        
+                        docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+                          if (params.RC) {
+                            def RC_IMAGE_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-arm64"
+                            sh "docker build -t ${IMAGE_NAME}:${RC_IMAGE_TAG} --build-arg TARGETARCH=${TARGETARCH} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                            sh "docker push ${IMAGE_NAME}:${RC_IMAGE_TAG}"
+                            
+                            def append_string = "pytorch: ${IMAGE_NAME}:${RC_IMAGE_TAG}"
+                            def config_file_path = "<SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                            sh "python3 ci/update_release_config.py ${config_file_path} '${append_string}'"
+                            sh "cat <SHARED_SCRATCH_MOUNT>/users/release_pipeline_files/release_items.yml"
+                          } else {
+                            def UNIFIED_IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit"
+                            def UNIFIED_IMAGE_TAG = "${TAO_VERSION}-pyt-arm64"
+                            
+                            echo "Checking for existing Docker image..."
+                            def imageExists = sh(script: "docker manifest inspect ${UNIFIED_IMAGE_NAME}:${UNIFIED_IMAGE_TAG} > /dev/null 2>&1", returnStatus: true)
+                            if (imageExists == 0) {
+                              echo "Existing image found. Note: Manual removal may be required from registry"
+                            }
+                            
+                            sh "docker build -t ${UNIFIED_IMAGE_NAME}:${UNIFIED_IMAGE_TAG} --build-arg TARGETARCH=${TARGETARCH} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                            sh "docker push ${UNIFIED_IMAGE_NAME}:${UNIFIED_IMAGE_TAG}"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('arm_docker_coverage_build') {
+              when {
+                expression { return params.RC }
+              }
+              steps {
+                container('docker') {
+                  retry(count: 3) {
+                    script {
+                      if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+                        echo "Previous attempt failed, sleeping 5 minutes before retry..."
+                        sleep time: 5, unit: 'MINUTES'
+                      }
+                    }
+                    gitlabCommitStatus(name: "arm_docker_coverage_build", connection: gitLabConnection('git-lab-master')) {
+                      script {
+                        def IMAGE_NAME = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+                        def TARGETARCH = "arm64"
+                        def RC_IMAGE_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}"
+                        
+                        docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+                          sh "cat coverage_build.txt >> ${WORKSPACE}/release/docker/Dockerfile"
+                          sh "cat ${WORKSPACE}/release/docker/Dockerfile"
+                          sh "docker build -t ${IMAGE_NAME}:${RC_IMAGE_TAG}-cc-arm64 --build-arg TARGETARCH=${TARGETARCH} --network=host -f ${WORKSPACE}/release/docker/Dockerfile ${WORKSPACE}"
+                          sh "docker push ${IMAGE_NAME}:${RC_IMAGE_TAG}-cc-arm64"
+                          
+                          echo "Coverage Docker image published: ${IMAGE_NAME}:${RC_IMAGE_TAG}-cc-arm64"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            stage('arm_cleanup_scratch_space_dind') {
+              steps {
+                container('docker') {
+                  script {
+                    cleanupScratchSpace()
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    stage('consolidate_multiarch_image') {
+      agent {
+        kubernetes {
+          cloud 'sc-ipp-blossom-prod'
+          yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: tao-pytorch-consolidate
+spec:
+  imagePullSecrets:
+  - name: svc-tlt-ci-ngcimagepullsecret
+  - name: gitlab-tao-imagepullsecret
+  containers:
+  - name: docker
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "8Gi"
+      limits:
+        memory: "16Gi"
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+      - name: OTEL_SDK_DISABLED
+        value: "true"
+  restartPolicy: Never
+  backoffLimit: 4
+  nodeSelector:
+    kubernetes.io/os: linux
+"""
+        }
+      }
+      
+      when {
+        expression {
+          return currentBuild.result != 'FAILURE'
+        }
+      }
+      
+      steps {
+        container('docker') {
+          retry(count: 3) {
+            script {
+              if (currentBuild.getPreviousBuild()?.getResult() == 'FAILURE') {
+                echo "Previous attempt failed, sleeping 5 minutes before retry..."
+                sleep time: 5, unit: 'MINUTES'
+              }
+            }
+            gitlabCommitStatus(name: "consolidate_multiarch_image", connection: gitLabConnection('git-lab-master')) {
+              script {
+                echo "=== Consolidating Multi-Architecture Images ==="
+                
+                sh '''
+                  echo "Waiting for Docker daemon..."
+                  for i in $(seq 1 30); do
+                    docker info > /dev/null 2>&1 && break
+                    sleep 2
+                  done
+                '''
+                
+                def IMAGE_NAME_PYT = "nvcr.io/nvstaging/tao/tao-toolkit-pyt"
+                def IMAGE_NAME_TOOLKIT = "nvcr.io/nvstaging/tao/tao-toolkit"
+                def X86_TAG, ARM64_TAG, UNIFIED_TAG
+                def CC_X86_TAG, CC_ARM64_TAG, CC_UNIFIED_TAG
+                
+                if (params.RC) {
+                  X86_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-x86"
+                  ARM64_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-arm64"
+                  UNIFIED_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-multiarch"
+                  
+                  CC_X86_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-cc-x86"
+                  CC_ARM64_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-cc-arm64"
+                  CC_UNIFIED_TAG = "${TAO_VERSION}-rc-${BUILD_NUMBER}-cc-multiarch"
+                } else {
+                  X86_TAG = "${TAO_VERSION}-pyt-x86"
+                  ARM64_TAG = "${TAO_VERSION}-pyt-arm64"
+                  UNIFIED_TAG = "${TAO_VERSION}-pyt"
+                }
+                
+                docker.withRegistry('https://nvcr.io', 'NGC_API_KEY') {
+                  sh "docker buildx create --name mb --use --driver docker-container --bootstrap || docker buildx use mb"
+                  
+                  if (params.RC) {
+                    // Consolidate tao-toolkit-pyt images
+                    echo "=== Consolidating tao-toolkit-pyt Images ==="
+                    def x86Exists = sh(script: "docker manifest inspect ${IMAGE_NAME_PYT}:${X86_TAG}", returnStatus: true)
+                    def armExists = sh(script: "docker manifest inspect ${IMAGE_NAME_PYT}:${ARM64_TAG}", returnStatus: true)
+                    
+                    if (x86Exists != 0 || armExists != 0) {
+                      error("One or both pyt images not found")
+                    }
+                    
+                    sh "docker buildx imagetools create -t ${IMAGE_NAME_PYT}:${UNIFIED_TAG} ${IMAGE_NAME_PYT}:${X86_TAG} ${IMAGE_NAME_PYT}:${ARM64_TAG}"
+                    
+                    // Verify multiarch manifest was created correctly
+                    sh "docker manifest inspect ${IMAGE_NAME_PYT}:${UNIFIED_TAG}"
+                    echo "✓ PyT multiarch image created: ${IMAGE_NAME_PYT}:${UNIFIED_TAG}"
+                    
+                    // Retag tao-toolkit-pyt multiarch image to tao-toolkit with -pyt suffix
+                    echo "=== Retagging PyT multiarch image to tao-toolkit ==="
+                    def TOOLKIT_PYT_TAG = "${TAO_VERSION}-pyt"
+                    // Create the final multiarch manifest directly from source x86 and arm64 images
+                    sh "docker buildx imagetools create -t ${IMAGE_NAME_TOOLKIT}:${TOOLKIT_PYT_TAG} ${IMAGE_NAME_PYT}:${X86_TAG} ${IMAGE_NAME_PYT}:${ARM64_TAG}"
+                    
+                    // Verify the final multiarch manifest
+                    sh "docker manifest inspect ${IMAGE_NAME_TOOLKIT}:${TOOLKIT_PYT_TAG}"
+                    echo "✓ Toolkit PyT image tagged: ${IMAGE_NAME_TOOLKIT}:${TOOLKIT_PYT_TAG}"
+                    
+                    // Consolidate CC images (RC only)
+                    echo "=== Consolidating CC Images ==="
+                    def ccX86Exists = sh(script: "docker manifest inspect ${IMAGE_NAME_PYT}:${CC_X86_TAG}", returnStatus: true)
+                    def ccArmExists = sh(script: "docker manifest inspect ${IMAGE_NAME_PYT}:${CC_ARM64_TAG}", returnStatus: true)
+                    
+                    if (ccX86Exists != 0 || ccArmExists != 0) {
+                      error("One or both CC images not found")
+                    }
+                    
+                    sh "docker buildx imagetools create -t ${IMAGE_NAME_PYT}:${CC_UNIFIED_TAG} ${IMAGE_NAME_PYT}:${CC_X86_TAG} ${IMAGE_NAME_PYT}:${CC_ARM64_TAG}"
+                    sh "docker manifest inspect ${IMAGE_NAME_PYT}:${CC_UNIFIED_TAG}"
+                    echo "✓ CC multiarch image created: ${IMAGE_NAME_PYT}:${CC_UNIFIED_TAG}"
+                  } else {
+                    // Non-RC: Consolidate tao-toolkit images
+                    echo "=== Consolidating tao-toolkit PyT Images ==="
+                    def x86Exists = sh(script: "docker manifest inspect ${IMAGE_NAME_TOOLKIT}:${X86_TAG}", returnStatus: true)
+                    def armExists = sh(script: "docker manifest inspect ${IMAGE_NAME_TOOLKIT}:${ARM64_TAG}", returnStatus: true)
+                    
+                    if (x86Exists != 0 || armExists != 0) {
+                      error("One or both toolkit images not found")
+                    }
+                    
+                    sh "docker buildx imagetools create -t ${IMAGE_NAME_TOOLKIT}:${UNIFIED_TAG} ${IMAGE_NAME_TOOLKIT}:${X86_TAG} ${IMAGE_NAME_TOOLKIT}:${ARM64_TAG}"
+                    
+                    sh "docker manifest inspect ${IMAGE_NAME_TOOLKIT}:${UNIFIED_TAG}"
+                    echo "✓ Toolkit PyT multiarch image created: ${IMAGE_NAME_TOOLKIT}:${UNIFIED_TAG}"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  post {
+    always {
+      script {
+        echo "=== Multi-Arch PyTorch Build Complete ==="
+        echo "Overall Build Result: ${currentBuild.result ?: 'SUCCESS'}"
+        echo "Check individual stage results in the pipeline view for details."
+      }
+    }
+  }
+}
+
+

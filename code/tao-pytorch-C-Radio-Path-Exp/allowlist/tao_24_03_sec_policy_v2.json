@@ -1,0 +1,2072 @@
+{
+    "id": "sectools-policy-tao-24.02-release",
+    "mappings": [
+        {
+            "id": "<uuid>",
+            "image": {
+                "type": "tag",
+                "value": "*"
+            },
+            "name": "default",
+            "registry": "*",
+            "repository": "*",
+            "allowlist_ids": [
+                "<uuid>"
+            ],
+            "rule_set_ids": [
+                "sectools-base-policy"
+            ]
+        }
+    ],
+    "name": "SecTools Policy TAO 24.02 Release",
+    "version": "V2",
+    "denylisted_images": [],
+    "allowlisted_images": [],
+    "description": "Collection of SecTools policies.",
+    "allowlists": [
+        {
+            "id": "<uuid>",
+            "name": "Allowlist for 24.02 release",
+            "version": "1_0",
+            "items": [
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20225+pip",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-39332+node",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "*Pillow*",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "*linux-libc-dev*",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "*libc6*",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4911+libc-dev-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4911+libc-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-39331+node",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38545+libcurl4-openssl-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38545+libcurl4",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38545+libcurl3-gnutls",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38545+curl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-2618+opencv",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "*libpmi2*",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "GHSA-v845-jxx5-vc9f+urllib3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "GHSA-mq26-g339-26xf+pip",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "GHSA-g4mx-q9vg-27p4+urllib3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5535+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5535+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5535+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5535+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5441+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5441+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5441+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5441+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5363+openssl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5363+libssl3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5363+libssl-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5344+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5344+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5344+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5344+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5217+libvpx7",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5156+libc-dev-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-5156+libc-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4781+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4781+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4781+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4781+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4752+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4752+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4752+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4752+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4751+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4751+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4751+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4751+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4750+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4750+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4750+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4750+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4735+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4735+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4735+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4735+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4734+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4734+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4734+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4734+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4733+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4733+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4733+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4733+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-46246+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-46246+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-46246+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-46246+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-44488+libvpx7",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43787+libx11-xcb1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43787+libx11-data",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43787+libx11-6",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43786+libx11-xcb1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43786+libx11-data",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43786+libx11-6",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43785+libx11-xcb1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43785+libx11-data",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-43785+libx11-6",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-37769+libpixman-1-0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-36054+libkrb5support0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-36054+libkrb5-3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-36054+libk5crypto3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-36054+libgssapi-krb5-2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48065+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48065+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48065+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48065+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48065+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48063+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48063+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48063+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48063+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48063+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47695+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47695+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47695+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47695+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47695+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47011+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47011+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47011+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47011+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47011+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47010+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47010+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47010+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47010+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47010+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47008+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47008+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47008+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47008+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47008+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47007+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47007+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47007+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47007+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-47007+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-45703+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-45703+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-45703+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-45703+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-45703+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-44840+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-44840+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-44840+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-44840+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-44840+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3964+libswscale5",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3964+libswresample3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3964+libpostproc55",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3964+libavutil56",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3964+libavformat58",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3705+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3705+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3705+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3705+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35206+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35206+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35206+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35206+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35206+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35205+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35205+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35205+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35205+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-35205+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3324+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3324+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3324+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3324+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-33065+libsndfile1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-33064+libsndfile1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3256+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3256+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3256+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3256+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3235+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3235+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3235+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3235+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3234+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3234+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3234+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3234+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "*libslurm37*",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2020-22916+xz-utils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2020-22916+liblzma5",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2020-22916+liblzma-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4813+libc-dev-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4813+libc-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4806+libc-dev-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4806+libc-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4016+procps",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-4016+libprocps8",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38546+libcurl4-openssl-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38546+libcurl4",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38546+libcurl3-gnutls",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-38546+curl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3817+openssl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3817+libssl3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3817+libssl-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-34969+libdbus-1-3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-34969+dbus",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3446+openssl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3446+libssl3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3446+libssl-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3164+libtiff5",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-2975+openssl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-2975+libssl3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-2975+libssl-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-2953+libldap-2.5-0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-29383+passwd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-29383+login",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-28531+openssh-client",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-25193+libharfbuzz0b",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-1916+libtiff5",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4899+libzstd1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48522+perl-modules-5.34",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48522+perl-base",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48522+perl",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48522+libperl5.34",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4743+libsdl2-2.0-0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-46908+libsqlite3-0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4293+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4293+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4293+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4293+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4292+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4292+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4292+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4292+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4285+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4285+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4285+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4285+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-4285+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3857+libpng16-16",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3857+libpng-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3715+bash",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3591+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3591+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3591+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3591+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3520+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3520+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3520+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3520+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3491+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3491+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3491+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3491+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3352+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3352+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3352+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3352+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3297+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3297+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3297+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3297+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3278+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3278+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3278+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3278+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3219+gpgv",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3219+gpgsm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3219+gpgconf",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3219+gpg-wks-server",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-3219+gpg-wks-client",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-27943+libubsan1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-27943+libtsan0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-27943+libstdc++6",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-27943+libstdc++-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-27943+libquadmath0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-1886+xxd",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-1886+vim-runtime",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-1886+vim-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-1886+vim",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-46195+libtsan0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-46195+libstdc++-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-46195+libgfortran-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-46195+libgcc-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-46195+libasan6",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-4156+libsndfile1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-3826+libtsan0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-3826+libstdc++-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-3826+libgfortran-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-3826+libgcc-11-dev",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-3826+libasan6",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-3575+libopenjp2-7",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-29338+libopenjp2-7",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-8343+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-7147+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-6988+libopenjp2-7",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-6461+libcairo2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-6461+libcairo-gobject2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-1010204+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-1010204+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-1010204+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-1010204+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-1010204+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-8883+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20538+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-19216+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-18064+libcairo2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-18064+libcairo-gobject2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-16999+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-10254+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-10126+libtiff5",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-1000667+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-1000021+git-man",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-1000021+git",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-7475+libcairo2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-7475+libcairo-gobject2",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-13716+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-13716+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-13716+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-13716+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-13716+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2016-2781+coreutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-3576+libtiff5",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48064+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48064+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48064+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48064+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2022-48064+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-45261+patch",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2021-44269+libwavpack1",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-6291+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2019-6290+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-8882+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-6952+patch",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20657+libctf0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20657+libctf-nobfd0",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20657+libbinutils",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20657+binutils-x86-64-linux-gnu",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-20657+binutils-common",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-19755+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-19215+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-19214+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-19213+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-19209+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-16517+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-16382+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-10316+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-10016+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2018-1000886+nasm",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2017-11164+libpcre3",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2016-20013+libc-dev-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2016-20013+libc-bin",
+                    "id": "<uuid>",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "CVE-2023-2617+opencv*",
+                    "id": "1",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                },
+                {
+                    "gate": "vulnerabilities",
+                    "trigger_id": "GHSA-whh8-fjgc-qp73+onnx*",
+                    "id": "2",
+                    "expires_on": "2025-02-14T14:28:30Z"
+                }
+            ],
+            "description": "Allowlist for 24.02 release"
+        }
+    ],
+    "rule_sets": [
+        {
+            "id": "sectools-base-policy",
+            "name": "Base Policy",
+            "rules": [
+                {
+                    "action": "WARN",
+                    "gate": "vulnerabilities",
+                    "id": "<uuid>",
+                    "params": [
+                        {
+                            "name": "package_type",
+                            "value": "all"
+                        },
+                        {
+                            "name": "severity_comparison",
+                            "value": "="
+                        },
+                        {
+                            "name": "severity",
+                            "value": "medium"
+                        }
+                    ],
+                    "trigger": "package"
+                },
+                {
+                    "action": "STOP",
+                    "gate": "vulnerabilities",
+                    "id": "<uuid>",
+                    "params": [
+                        {
+                            "name": "package_type",
+                            "value": "all"
+                        },
+                        {
+                            "name": "severity_comparison",
+                            "value": ">"
+                        },
+                        {
+                            "name": "severity",
+                            "value": "medium"
+                        }
+                    ],
+                    "trigger": "package"
+                }
+            ],
+            "version": "1_0",
+            "description": "Base policy for a basic severity check in vulns."
+        }
+    ]
+}

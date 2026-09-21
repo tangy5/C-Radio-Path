@@ -1,0 +1,180 @@
+# Same as spec_01282026.yaml with Phase 2 EVFM augmentation options explicitly set.
+# Requires tao-core with AugmentationConfig Phase 2 fields. Install: pip install -e ./tao-core
+# install sam3 and decord first: pip install pip install -e <EDGEAI_ROOT>/users/<user>/workspace/sam3/
+dataset:
+  augmentation:
+    mean:
+    - 0.485
+    - 0.456
+    - 0.406
+    mixup_alpha: 0.8
+    mixup_cutmix: true
+    random_aug:
+      enable: true
+    random_color:
+      brightness: 0.4
+      contrast: 0.4
+      enable: true
+      saturation: 0.4
+    random_erase:
+      enable: false
+    random_flip:
+      enable: true
+      hflip_probability: 0.5
+      vflip_probability: 0
+    random_rotate:
+      enable: true
+      rotate_probability: 0.5
+      angle_list: [0, 90, 180]   # ignored when use_continuous_rotation=true
+      angle_range: [-15, 15]    # used when use_continuous_rotation=true (degrees)
+    std:
+    - 0.229
+    - 0.224
+    - 0.225
+    with_random_blur: false
+    with_random_crop: false
+    with_scale_random_crop:
+      enable: false
+    # Phase 2 EVFM parity options
+    use_gpu_color_aug: true      # Enable GPU color aug pipeline
+    patch_size: 14               # For ViT-L/14 or similar
+    use_continuous_rotation: true
+    perspective_distortion:
+      enable: true
+      scale: [0.01, 0.05]
+      prob: 0.5
+    random_noise:
+      enable: true
+      std_dev: 0.02
+      prob_apply: 0.5
+    grayscale_prob: 0.1
+  batch_size: 16
+  dataset: CLDataset
+  img_size: 224
+  num_classes: 0
+  root_dir: <EDGEAI_ROOT>/projects/edgeai_tao-ptm_image-foundation-model-clip/datasets/imagenet2012
+  test_dataset:
+    images_dir: <EDGEAI_ROOT>/projects/edgeai_tao-ptm_image-foundation-model-clip/datasets/imagenet2012/val
+  train_dataset:
+    tar_data_sources:
+    - root_dir: <EDGEAI_ROOT>/projects/edgeai_tao-ptm_image-foundation-model-clip/datasets/webdataset-secrets-redacted-3.0
+      samples_per_file: 100
+      scale_factor: 1.0
+      steps_per_epoch: 100
+    - root_dir: <EDGEAI_ROOT>/projects/edgeai_tao-ptm_image-foundation-model-clip/datasets/webdataset-secrets-redacted-3.0
+      samples_per_file: 100
+      scale_factor: 1.0
+      steps_per_epoch: 100
+    student_patch_size: 16           # Student ViT patch size (c_radio_v3 uses patch16)
+    seed: 42
+    full_equivariance: false
+    shift_equivariance: false
+    data_weight_mode: inv_frequency
+    prefetch: true
+  val_dataset:
+    images_dir: <EDGEAI_ROOT>/projects/edgeai_tao-ptm_image-foundation-model-clip/datasets/imagenet2012/val
+  workers: 1
+distill:
+  loss_lambda: 1.0
+  loss_type: MSE
+  teacher:
+  - model:
+      backbone:
+        freeze_backbone: true
+        pretrained_backbone_path: <EDGEAI_ROOT>/users/<user>/experiments/NV_DINOV2_518.ckpt
+        type: vit_large_patch14_dinov2_swiglu
+    pretrained_teacher_model_path: <EDGEAI_ROOT>/users/<user>/experiments/nvdinov2_epoch_10.pth
+    mode: combo
+    summary_loss_type: tangent_sphere
+    summary_loss_weight: 0.5
+    input_size: 518
+    patch_size: 14
+    match_student_resolution: true
+    upsample_factor: 1
+    stochastic_resolutions: { 192: 0.01, 224: 0.2, 256: 0.79 }
+  - model:
+      backbone:
+        freeze_backbone: true
+        type: siglip2_so400m
+    mode: combo
+    input_size: 224
+    patch_size: 16
+    match_student_resolution: true
+    upsample_factor: 1
+    stochastic_resolutions: { 192: 0.01, 224: 0.2, 256: 0.79 }
+    summary_loss_type: cosine
+    summary_loss_weight: 1.0
+    # Same preprocessing as SAM3 (0.5/0.5); dataset uses ImageNet by default
+    norm_mean: [0.5, 0.5, 0.5]
+    norm_std: [0.5, 0.5, 0.5]
+  - model:
+      backbone:
+        freeze_backbone: true
+        type: dinov3_vit7b16
+    mode: combo
+    summary_loss_type: tangent_sphere
+    summary_loss_weight: 0.5
+    input_size: 224
+    patch_size: 16
+    match_student_resolution: true
+    upsample_factor: 1
+    stochastic_resolutions: { 192: 0.01, 224: 0.2, 256: 0.79 }
+  # - model:
+  #     backbone:
+  #       freeze_backbone: true
+  #       type: sam3_default
+  #   mode: combo
+model:
+  backbone:
+    freeze_backbone: false
+    type: c_radio_v3_vit_base_patch16_reg4_dinov2
+  head:
+    binary: false
+    loss:
+      label_smooth_val: 0.1
+      type: CrossEntropyLoss
+    topk:
+    - 1
+    - 5
+    type: TAOLinearClsHead
+results_dir: <EDGEAI_ROOT>/users/<user>/experiments/cls/distill_multi_teacher
+train:
+  checkpoint_interval: 10
+  clip_grad_norm: 10000.0
+  ema_decay: 0.99992
+  enable_ema: false
+  gpu_ids:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  num_epochs: 100
+  num_gpus: 8
+  num_nodes: 1
+  optim:
+    betas:
+    - 0.9
+    - 0.999
+    lr: 0.001
+    optim: adamw
+    policy: cosine
+    skip_names:
+    - bias
+    - norm
+    - grn
+    - gamma
+    - beta
+    warmup_epochs: 20
+    weight_decay: 0.05
+  precision: fp32
+  resume_training_checkpoint_path: null
+  seed: 42
+  tensorboard:
+    enabled: true
+  validation_interval: 10
+wandb:
+  enable: false

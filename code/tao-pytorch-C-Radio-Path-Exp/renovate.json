@@ -1,0 +1,86 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended"],
+    "prTitle": "[TAO-524][Chore] {{title}}",
+    "commitMessagePrefix": "[TAO-524][Chore]",
+    "enabledManagers": ["pip_requirements"],
+    "includePaths": [
+        "docker/requirements-pip.txt",
+        "docker/requirements-pip-pytorch.txt",
+    ],
+    "branchPrefix": "renovate/",
+    "labels": ["renovate"],
+    "prConcurrentLimit": 5,
+    "semanticCommits": "disabled",
+    "dependencyDashboard": true,
+    "onboarding": false,
+    "requireConfig": "optional",
+    "pin": { "enabled": false },
+    "osvVulnerabilityAlerts": true,
+    "vulnerabilityAlerts": { 
+      "enabled": true,
+      "prTitle": "[TAO-524][Chore] Update {{depName}} to {{newVersion}} (security)",
+      "labels": ["security", "vulnerability"]
+    },
+    "pip_requirements": {
+        "fileMatch": [
+            "(^|/)docker/requirements-pip\\.txt$",
+            "(^|/)docker/requirements-pip-pytorch\\.txt$"
+        ]
+    },
+    "rebaseWhen": "behind-base-branch",
+    "packageRules": [
+        {
+            "description": "Globally ignore specific deps in requirements files",
+            "matchManagers": ["pip_requirements"],
+            "ignoreDeps": ["pyarmor", "pycocotools", "iopath", "pandas"]
+        },
+        {
+            "description": "Wait 14 days before updating non-security dependencies",
+            "matchCategories": ["!security"],
+            "minimumReleaseAge": "14 days"
+        },
+        {
+            "description": "Ignore ranged specs for PyPI deps in requirements files",
+            "matchManagers": ["pip_requirements"],
+            "matchDatasources": ["pypi"],
+            "matchCurrentVersion": "/^(<=|>=|!=|~=|<|>)/",
+            "enabled": false
+        }, 
+        {
+            "matchUpdateTypes": ["major"],
+            "prTitle": "[TAO-524][Chore] Update {{depName}} to {{newVersion}} (major)",
+            "labels": ["renovate", "major-update"]
+        },
+        {
+            "matchUpdateTypes": ["minor"],
+            "prTitle": "[TAO-524][Chore] Update {{depName}} to {{newVersion}} (minor)",
+            "labels": ["renovate", "minor-update"]
+        },
+        {
+            "matchUpdateTypes": ["patch"],
+            "prTitle": "[TAO-524][Chore] Update {{depName}} to {{newVersion}} (patch)",
+            "labels": ["renovate", "patch-update"]
+        },
+        {
+            "description": "Group all non-security patch updates into one MR",
+            "matchCategories": ["!security"],
+            "matchUpdateTypes": ["patch"],
+            "excludePackageNames": ["open-clip-torch[training]", "pytorch-lightning", "pytorch_metric_learning", "pytorch-msssim", "sentencepiece", "thop", "timm", "torchmetrics", "pycuda", "memoizer", "fvcore"],
+            "groupName": "Non-security patch updates",
+            "groupSlug": "non-security-patch",
+            "prTitle": "[TAO-524][Chore] Group non-security patch updates",
+            "labels": ["renovate", "patch-update", "bulk"]
+        },
+        {
+            "description": "Group all non-security minor updates into one MR",
+            "matchCategories": ["!security"],
+            "matchUpdateTypes": ["minor"],
+            "excludePackageNames": ["open-clip-torch[training]", "pytorch-lightning", "pytorch_metric_learning", "pytorch-msssim", "sentencepiece", "thop", "timm", "torchmetrics", "pycuda", "memoizer", "fvcore"],
+            "groupName": "Non-security minor updates",
+            "groupSlug": "non-security-minor",
+            "prTitle": "[TAO-524][Chore] Group non-security minor updates",
+            "labels": ["renovate", "minor-update", "bulk"]
+        }
+    ]
+  }
